@@ -1,0 +1,67 @@
+model = "gpt-5.5"
+model_reasoning_effort = "medium"
+sandbox_mode = "read-only"
+
+[marketplaces.openai-bundled]
+last_updated = "2026-05-12T10:19:18Z"
+source_type = "local"
+source = '\\?\C:\Users\ADMIN\.codex\.tmp\bundled-marketplaces\openai-bundled'
+
+[plugins."chrome@openai-bundled"]
+enabled = true
+
+[plugins."chatgpt-apps@openai-curated"]
+enabled = true
+
+[plugins."github@openai-curated"]
+enabled = true
+
+[plugins."vercel@openai-curated"]
+enabled = true
+
+[plugins."build-ios-apps@openai-curated"]
+enabled = true
+
+[plugins."build-web-apps@openai-curated"]
+enabled = true
+
+[plugins."supabase@openai-curated"]
+enabled = true
+
+[plugins."cloudflare@openai-curated"]
+enabled = true
+
+[plugins."canva@openai-curated"]
+enabled = true
+
+[plugins."figma@openai-curated"]
+enabled = true
+
+[plugins."gmail@openai-curated"]
+enabled = true
+
+[plugins."notion@openai-curated"]
+enabled = true
+
+[plugins."google-calendar@openai-curated"]
+enabled = true
+
+[plugins."slack@openai-curated"]
+enabled = true
+
+[plugins."stripe@openai-curated"]
+enabled = true
+
+[plugins."browser-use@openai-bundled"]
+enabled = true
+
+[windows]
+sandbox = "unelevated"
+
+[projects.'d:\codex']
+trust_level = "trusted"
+
+[mcp_servers.dsers]
+command = "D:/Codex/.tools/node-v24.12.0-win-x64/npx.cmd"
+args = ["-y", "@lofder/dsers-mcp-product"]
+
