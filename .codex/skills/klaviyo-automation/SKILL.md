@@ -6,125 +6,84 @@ source: local
 date_added: "2026-06-12"
 ---
 
-# Навичка: klaviyo-automation
+# klaviyo-automation
 
 ## Що робить
-Будує email та SMS автоматизації в Klaviyo для e-commerce: flows (потоки), сегменти аудиторій, кампанії. Орієнтована на Shopify-магазини та дропшипінг.
 
-## Тригери (коли активується)
+Налаштовує email та SMS автоматизації в Klaviyo для e-commerce: flows, сегменти, кампанії, A/B-тести, умовні розгалуження. Орієнтовано на Shopify-магазини та дропшипінг.
+
+## Тригери
+
 - "Klaviyo"
 - "email автоматизація"
 - "налаштувати flow"
-- "email flow Klaviyo"
-- "SMS кампанія"
-- "покинутий кошик email"
-- "welcome series"
+- "Klaviyo flow"
+- "email кампанія"
+- "SMS автоматизація"
+- "налаштувати Klaviyo для Shopify"
 
-## Вхідні дані (що запитати у користувача)
-1. **Тип завдання** — Flow / Кампанія / Сегмент / Інтеграція Shopify?
-2. **Мета** — відновлення кошика, welcome series, post-purchase, win-back?
-3. **Аудиторія** — хто отримує (нові підписники, покупці, VIP)?
-4. **Канал** — Email, SMS або обидва?
-5. **Тон бренду** — формальний / неформальний / агресивний sale?
-6. **Інтеграція** — Shopify підключений до Klaviyo?
+## Вхідні дані
 
-## Алгоритм (кроки)
+- Назва і мета flow (welcome series, abandoned cart, post-purchase тощо)
+- Аудиторія: новий підписник, покупець, конкретний сегмент
+- Тип повідомлень: email / SMS / обидва
+- Тон бренду, наявні шаблони або приклади
+- Підключений Shopify-магазин (так/ні)
 
-### Крок 1 — Визначення типу автоматизації
+## Алгоритм
 
-**Основні Flow (потоки):**
-```
-1. Welcome Series      — тригер: список "Newsletter"
-2. Abandoned Cart      — тригер: Shopify "Started Checkout"
-3. Abandoned Browse    — тригер: Shopify "Viewed Product"
-4. Post-Purchase       — тригер: Shopify "Ordered Product"
-5. Win-Back            — тригер: "Customer hasn't purchased in 90 days"
-6. Sunset Flow         — тригер: "Hasn't opened email in 180 days"
-```
-
-### Крок 2 — Архітектура Flow
-```
-Trigger → [Time Delay] → Email 1
-                      → [Conditional Split: opened?]
-                         Yes → Email 2 (Upsell)
-                         No  → Email 2 (Reminder, stronger CTA)
-                      → [Time Delay] → Email 3
-```
-
-### Крок 3 — Структура листів
-
-**Email шаблон (структура):**
-- Subject Line (A/B тест: варіант A та B)
-- Preview Text (≤90 символів)
-- Header: логотип + навігація
-- Body: заголовок → проблема/бажання → рішення → CTA
-- Footer: unsubscribe link (обов'язково), адреса
-
-**Abandoned Cart Email послідовність:**
-```
-Email 1 (1 год): "Ти щось забув?" — м'який нагадувач
-Email 2 (24 год): Показати товари + соціальний доказ
-Email 3 (72 год): Знижка 10% або безкоштовна доставка
-```
-
-### Крок 4 — Сегменти аудиторій
-```
-VIP Customers:       "Placed Order" count ≥ 3 AND total ≥ $200
-At-Risk Customers:   "Last purchase > 60 days" AND "purchased ≥ 2x"
-Engaged Subscribers: "Opened email in last 30 days"
-SMS Subscribers:     "Consented to SMS" = true
-```
-
-### Крок 5 — Налаштування в Klaviyo UI
-```
-1. Flows → Create Flow → Browse Templates або From Scratch
-2. Вибрати тригер → налаштувати фільтри тригера
-3. Додати Time Delay (напр. 1 hour)
-4. Додати Email action → Templates → Design email
-5. Додати Conditional Split (якщо потрібно)
-6. Review → Set Flow Live (або Manual для тесту)
-```
-
-### Крок 6 — SMS автоматизація (якщо потрібно)
-- Підключити Klaviyo SMS (US/CA: потрібен toll-free номер або short code)
-- Дотримання TCPA: SMS тільки з явною згодою
-- Обмеження: не надсилати SMS з 21:00 до 8:00 (часовий пояс отримувача)
-
-## Формат виводу
-```
-## Klaviyo Flow: [Назва]
-
-### Схема Flow
-Trigger: [Event]
-├── Delay: [X год/днів]
-├── Email 1: "[Subject Line]"
-│   ├── Conditional Split: Opened?
-│   │   ├── Yes → Delay → Email 2a
-│   │   └── No  → Delay → Email 2b
-└── Email 3: "[Subject Line]"
-
-### Тексти листів
-
-**Email 1**
-Subject: ...
-Preview: ...
-Body: ...
-CTA: ...
-
-### Сегменти
-- Включити: ...
-- Виключити: ...
-
-### KPI для відстеження
-- Open Rate ціль: >25%
-- Click Rate ціль: >3%
-- Revenue per Recipient: $X
-```
+1. **Визначити flow-тригер** — Metric (Placed Order, Added to Cart), List/Segment, Date, API тощо.
+2. **Спроектувати структуру** — намалювати гілки flow: Trigger → Time Delay → Email → Conditional Split → Email A / Email B.
+3. **Сегментація** — описати умови Conditional Split (купив / не купив, відкрив / не відкрив).
+4. **Зміст листів** — для кожного кроку вказати: тема, preview text, CTA, персоналізація (first name, product name).
+5. **Затримки** — рекомендувати тайминги: Welcome (одразу), Abandoned Cart (1 год → 24 год → 3 дні).
+6. **Фільтри flow** — додати Smart Sending, quiet hours, виключити вже-конвертованих.
+7. **SMS (якщо потрібно)** — окремий SMS-крок з текстом до 160 символів + opt-out посилання.
+8. **A/B тест** — визначити змінну (тема листа / час відправки / CTA), розмір вибірки, переможний критерій.
+9. **Аналітика** — вказати KPI для моніторингу: Open Rate, Click Rate, Revenue per Recipient, Unsubscribe Rate.
 
 ## Правила
-- Unsubscribe link — обов'язковий у кожному листі (CAN-SPAM / GDPR)
-- A/B тест subject line — завжди для кампаній з аудиторією > 1000
-- Виключати поточних покупців з abandoned cart flow
-- SMS вимагає окремої явної згоди — не включати всіх email-підписників
-- Для Shopify: перевірити що Klaviyo JS snippet встановлений у темі
-- Не надсилати більше 1 листа на день у будь-якому flow
+
+- Smart Sending вмикати для всіх promotional flows (запобігає надмірній частоті).
+- Для abandoned cart — обов'язково перевіряти чи замовлення не розміщено перед кожним наступним листом.
+- Персоналізація: `{{ first_name|default:'there' }}` — завжди з fallback.
+- SMS в США/Канаді вимагає явного opt-in — не додавати номери без згоди.
+- Не надсилати більше 1 SMS на тиждень на холодну аудиторію.
+- Welcome series: мінімум 3 листи (1-й одразу, 2-й через 2 дні, 3-й через 5 днів).
+- Post-purchase flow відокремлювати від transactional emails (вони йдуть з різних відправників).
+
+## Стандартні flow для e-commerce
+
+| Flow | Тригер | Кількість кроків | Мета |
+|------|--------|-----------------|------|
+| Welcome Series | Joined List | 3-5 emails | Знайомство з брендом |
+| Abandoned Cart | Added to Cart | 3 emails (+ SMS) | Повернути покупця |
+| Browse Abandonment | Viewed Product | 2 emails | Нагадування |
+| Post-Purchase | Placed Order | 2-4 emails | Retention + upsell |
+| Win-Back | Last Order > 90 days | 2-3 emails | Реактивація |
+| Sunset | Low engagement > 180 days | 1 email + clean | Гігієна списку |
+
+## Формат виходу
+
+```
+## Flow: [назва]
+Тригер: [тип тригера]
+Аудиторія: [опис сегмента]
+
+### Структура
+Trigger
+↓ Delay: [час]
+Email 1: "[тема]" — [мета листа]
+↓ Conditional Split: [умова]
+  ├─ YES → Email 2A: "[тема]"
+  └─ NO  → Delay 24h → Email 2B: "[тема]"
+
+### Зміст листів
+| # | Тема | Preview Text | CTA | Персоналізація |
+|---|------|-------------|-----|----------------|
+| 1 | ... | ... | ... | ... |
+
+### KPI для відстеження
+- Open Rate: ціль > X%
+- Revenue per Recipient: ціль $X
+```
