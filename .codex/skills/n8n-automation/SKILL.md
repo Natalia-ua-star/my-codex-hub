@@ -6,105 +6,78 @@ source: local
 date_added: "2026-06-12"
 ---
 
-# Навичка: n8n-automation
+# n8n-automation
 
 ## Що робить
-Проєктує та описує n8n workflows: від простих тригер-дія до складних workflows з умовами, циклами, webhook-ендпоінтами та кастомним JavaScript/Python кодом.
 
-## Тригери (коли активується)
+Проектує та реалізує автоматизації в n8n: від простих лінійних workflows до складних розгалужених сценаріїв з умовами, циклами, HTTP-запитами та кодом. Підтримує self-hosted та cloud-версії.
+
+## Тригери
+
 - "n8n workflow"
 - "автоматизація n8n"
 - "зроби в n8n"
-- "n8n інтеграція"
-- "налаштуй n8n вузол"
-- "self-hosted автоматизація"
+- "n8n вузол"
+- "налаштуй n8n"
+- "побудуй workflow n8n"
 
-## Вхідні дані (що запитати у користувача)
-1. **Мета workflow** — що повинно відбуватись?
-2. **Тригер** — Webhook / Schedule (Cron) / Manual / App-тригер?
-3. **Вузли** — які сервіси потрібно підключити?
-4. **Логіка** — є умови, цикли, паралельні гілки?
-5. **Середовище** — n8n Cloud чи self-hosted?
-6. **Credentials** — які акаунти/API-ключі вже налаштовані?
+## Вхідні дані
 
-## Алгоритм (кроки)
+- Опис процесу: подія → трансформація → результат
+- Список сервісів для інтеграції
+- Тип запуску: Webhook / Schedule / Manual / другий workflow
+- Версія n8n (self-hosted / cloud) та наявність credentials
 
-### Крок 1 — Архітектура workflow
-- Визначити тип тригера:
-  - `Webhook Node` — для реального часу (Shopify, Stripe hooks)
-  - `Schedule Trigger` — для регулярних задач (cron-вираз)
-  - `Manual Trigger` — для ручного запуску
-- Побудувати граф вузлів: Trigger → Node1 → [IF?] → Node2
+## Алгоритм
 
-### Крок 2 — Вибір вузлів
-```
-Популярні вузли:
-- HTTP Request     — будь-який REST API
-- Code (JS/Python) — кастомна логіка
-- IF               — умовне розгалуження
-- Switch           — множинні гілки
-- Set              — встановлення/трансформація полів
-- Merge            — об'єднання гілок
-- Loop Over Items  — ітерація по масиву
-- Wait             — затримка між кроками
-- Google Sheets / Notion / Slack / Gmail — вбудовані інтеграції
-```
-
-### Крок 3 — Credentials
-- Вказати тип авторизації для кожного вузла (OAuth2, API Key, Basic Auth)
-- Self-hosted: налаштувати n8n через змінні середовища:
-  ```
-  N8N_BASIC_AUTH_ACTIVE=true
-  N8N_HOST=your-domain.com
-  WEBHOOK_URL=https://your-domain.com/
-  ```
-
-### Крок 4 — JSON workflow export
-- Сформувати JSON структуру workflow (сумісну з n8n import)
-- Кожен вузол: `id`, `name`, `type`, `parameters`, `position`
-- Connections: описати зв'язки між вузлами
-
-### Крок 5 — Покрокова інструкція
-```
-1. n8n → New Workflow
-2. Додати тригер-вузол → налаштувати параметри
-3. Додати вузли послідовно → налаштувати credentials
-4. Налаштувати mapping даних між вузлами (expressions: {{ $json.field }})
-5. Тестування: Execute Workflow (Manual trigger) або Send test webhook
-6. Активувати workflow (toggle Active)
-```
-
-### Крок 6 — Оптимізація
-- Додати Error Trigger вузол для обробки помилок
-- Використовувати `Set` вузол для нормалізації даних
-- Для великих обсягів — налаштувати `batch size` в Loop
-
-## Формат виводу
-```
-## n8n Workflow: [Назва]
-
-### Схема вузлів
-[Manual Trigger] → [HTTP Request] → [IF] → [Google Sheets]
-                                         → [Slack Notify]
-
-### Конфігурація вузлів
-**Вузол 1 — [Назва]**
-- Тип: ...
-- Параметри: ...
-- Credentials: ...
-
-### JSON Export (фрагмент)
-\`\`\`json
-{ "nodes": [...], "connections": {...} }
-\`\`\`
-
-### Розгортання
-1. ...
-```
+1. **Уточнення мети** — що є тригером, які дані обробляються, що є результатом.
+2. **Вибір trigger-вузла** — Webhook, Schedule Trigger, n8n Trigger, Manual Trigger або App Trigger.
+3. **Побудова ланцюга вузлів** — описати послідовність: Trigger → Set → IF → HTTP Request → [Merge / Split In Batches].
+4. **Credentials** — визначити типи автентифікації (API Key, OAuth2, Basic Auth) для кожного сервісу.
+5. **Трансформація даних** — використати вузли Set, Code (JavaScript), Function для маппінгу та обчислень.
+6. **Умови та гілки** — IF-вузол для бінарного розгалуження; Switch-вузол для множинних умов.
+7. **Обробка помилок** — додати Error Trigger workflow або Continue On Fail на критичних вузлах.
+8. **Тестування** — Execute workflow → перевірити output кожного вузла в панелі → виправити вирази.
+9. **Активація та моніторинг** — увімкнути workflow, налаштувати Executions log retention.
 
 ## Правила
-- Expressions в n8n: `{{ $json.fieldName }}`, `{{ $node["NodeName"].json.field }}`
-- Для HTTP Request — завжди вказувати Content-Type header
-- Self-hosted: нагадати про SSL та reverse proxy (Nginx/Caddy)
-- Для Shopify webhooks — використовувати HMAC-верифікацію в Code вузлі
-- Пропонувати Code вузол (JS) замість складних ланцюжків вузлів
+
+- Вирази в n8n мають синтаксис `{{ $json["field"] }}` або `{{ $node["NodeName"].json["field"] }}`.
+- Для доступу до даних попереднього вузла: `{{ $json }}` (поточний), `{{ $('NodeName').item.json }}` (конкретний).
+- Split In Batches — використовувати при обробці великих масивів (> 100 елементів) щоб уникнути timeout.
+- Self-hosted: переконатись що `N8N_BASIC_AUTH_ACTIVE=true` і webhooks доступні ззовні (reverse proxy).
+- Не зберігати секрети у вузлах Set — використовувати n8n Credentials або змінні середовища.
+- Code-вузол підтримує тільки синхронний JS (або async/await); `require()` недоступний у cloud-версії.
+- Зберігати workflow як JSON для бекапу та версіонування.
+
+## Формат виходу
+
+```
+## Схема Workflow
+[Manual/Webhook/Schedule Trigger]
+↓
+[Set] — нормалізація вхідних даних
+↓
+[IF] — умова: ...
+  ├─ TRUE → [HTTP Request] — назва запиту
+  └─ FALSE → [Set] — fallback значення
+↓
+[App Node] — фінальна дія
+
+## Вузли та налаштування
+| Вузол | Тип | Ключові параметри |
+|-------|-----|-----------------|
+| ...   | ... | ...             |
+
+## Credentials
+| Сервіс | Тип автентифікації | Де взяти ключ |
+|--------|--------------------|---------------|
+| ...    | ...                | ...           |
+
+## Вирази (приклади)
+- `{{ $json["id"] }}` — ID з поточного вузла
+- `{{ $('NodeName').item.json["email"] }}` — email з конкретного вузла
+
+## Рекомендації
+- [список нюансів та обмежень]
+```
