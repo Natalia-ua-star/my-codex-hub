@@ -18,6 +18,7 @@ Communicate with the user in **Ukrainian** unless they ask otherwise.
 | `config.toml` | Codex application config: model, enabled plugins, Windows sandbox settings, MCP servers |
 | `.codex/skills/` | Active custom skills loaded by the Codex app |
 | `Skill.md/` | Upload staging area — skills pending review, migration, or installation |
+| `docs/` | Project documentation: Apps Script specs, automation references |
 | `.codex-global-state.json` | Codex UI state (managed by the app; do not edit manually) |
 | `installation_id` | Codex installation UUID (do not modify) |
 | `cap_sid` | Workspace SID mapping (do not modify) |
@@ -44,15 +45,34 @@ date_added: "YYYY-MM-DD"
 ---
 ```
 
-**Active skills currently installed:**
+**Active skills currently installed (25 total):**
+
+*Core/Utility:*
 - `brainstorming` — Design facilitation before any implementation; enforces Understanding Lock gate before proposing solutions.
 - `guimkt-make-blueprint-expert` — Create, edit, debug, and validate Make.com scenario blueprint JSON files; includes rules for `jsonStringBodyContent` double-encoding and Python-based blueprint manipulation.
+- `business-analyst` — 7-step Excel/CSV analysis producing anomaly/pattern/forecast reports (Ukrainian/Russian).
+- `invoice` — PDF invoice generator from a one-line command using `reportlab` (Ukrainian/Russian).
+- `spreadsheet-formula-helper` — Google Sheets / Excel formula assistance.
 
-**Skills staged in `Skill.md/` (not yet active):**
-- `business-analyst` — 7-step Excel/CSV analysis producing anomaly/pattern/forecast reports (in Russian/Ukrainian).
-- `invoice` — PDF invoice generator from a one-line command using `reportlab` (in Russian/Ukrainian).
+*Shopify/Dropshipping:*
+- `shopify-masters-dropshipping`, `shopify-dropshipping` — Full store setup and dropshipping workflows.
+- `dropshipping-product-research`, `dropshipping-product-validator` — Product sourcing and validation.
+- `dropshipping-brand-builder` — Brand identity for dropshipping.
+- `dsers-mcp-product` — DSers product research via MCP.
+- `shopify-product-preflight`, `shopify-product-copywriter` — Pre-publish checks and product copy.
+- `shopify-conversion-optimization`, `shopify-landing-page-builder` — CRO and landing pages.
+- `shopify-store-setup` — Initial store configuration.
 
-To activate a staged skill, move its `SKILL.md` into `.codex/skills/<skill-name>/SKILL.md`. The `Skill.md/Skill.md/` subdirectory contains duplicates of the same staged skills — those can be removed once the originals in `Skill.md/` are processed.
+*Automation:*
+- `make-com-automation`, `zapier-automation`, `n8n-automation`, `klaviyo-automation` — Platform-specific automation helpers.
+
+*Tables/Docs:*
+- `googlesheets-automation`, `airtable-automation`, `notion-automation`, `nocodb-automation` — Spreadsheet and database automation.
+
+*Research:*
+- `apify-spy-research` — Competitor and market research via Apify.
+
+**Skills staged in `Skill.md/` (pending review):** None — all staged skills have been activated.
 
 ## Key Conventions from AGENTS.md
 
