@@ -48,96 +48,158 @@ ALIEXPRESS_TRUSTED_SELLER_RATING = 4.5     # out of 5 stars
 ALIEXPRESS_TRUSTED_SELLER_FEEDBACK_PCT = 95  # % positive feedback
 
 # --- Niches --------------------------------------------------------------------
-# "dogs" niche explicitly EXCLUDES food/treats/grooming/health products (per spec) —
-# handled via exclude_keywords filtering on title/caption text.
+# exclude_keywords filters out non-product / service listings that would
+# otherwise pollute results (insurance, licensing, consulting services, etc.)
+# — not the underlying product category itself.
 NICHES = {
-    "dogs": {
-        "label": "Dogs (accessories & gadgets — no food/grooming)",
+    "auto_accessories": {
+        "label": "Auto Accessories (car gadgets & accessories)",
         "youtube_queries": [
-            "dog gadget TikTok made me buy it",
-            "viral dog accessory",
-            "must have dog gear",
-            "cool dog product invention",
-            "dog toy that went viral",
+            "car accessory TikTok made me buy it",
+            "viral car gadget",
+            "must have car accessory",
+            "cool car interior gadget",
+            "car detailing product viral",
         ],
         "tiktok_hashtags": [
-            "dogaccessories", "dogsoftiktok", "dogproducts",
-            "dogmusthaves", "dogtech", "dogtoys", "dogfinds",
+            "caraccessories", "cargadgets", "carguytiktok",
+            "cartiktok", "cardetailing", "carmusthaves", "carhacks",
         ],
         "instagram_hashtags": [
-            "dogaccessories", "dogproducts", "dogmusthaves",
-            "dogtoys", "dogfinds", "dogtech",
+            "caraccessories", "cargadgets", "cardetailing",
+            "carmusthaves", "carhacks",
         ],
         "shopify_queries": [
-            "dog accessories store", "dog gadgets shop",
-            "dog toys online store", "dog gear dropshipping",
+            "car accessories store", "car gadgets shop",
+            "auto accessories dropshipping", "car detailing store",
         ],
         "aliexpress_queries": [
-            "dog gadget", "dog accessories", "dog toy",
-            "dog harness reflective", "dog cooling vest",
+            "car accessories", "car gadget", "car interior accessories",
+            "car phone holder", "car detailing kit",
         ],
         "exclude_keywords": [
-            "food", "kibble", "treat", "treats", "chew supplement",
-            "grooming", "shampoo", "vitamin", "dewormer", "flea",
-            "tick medicine", "vet visit", "diet plan", "probiotic",
+            "car insurance", "auto loan", "car dealership",
+            "car rental", "auto repair shop", "car finance",
         ],
     },
-    "home": {
-        "label": "Home (gadgets, decor, organization)",
+    "pet_products": {
+        "label": "Pet Products (all pets — dogs, cats, small animals)",
         "youtube_queries": [
-            "home gadget TikTok made me buy it",
-            "viral home product",
-            "cool kitchen gadget",
-            "home organization must have",
-            "genius home invention",
+            "pet gadget TikTok made me buy it",
+            "viral pet product",
+            "must have pet accessory",
+            "cool pet product invention",
+            "pet toy that went viral",
         ],
         "tiktok_hashtags": [
-            "homefinds", "homegadgets", "tiktokmademebuyit",
-            "amazonfinds", "kitchengadgets", "homehacks", "homedecor",
+            "petproducts", "petsoftiktok", "petaccessories",
+            "petmusthaves", "pettech", "pettoys", "petfinds",
         ],
         "instagram_hashtags": [
-            "homefinds", "homegadgets", "homedecor",
-            "homehacks", "kitchengadgets",
+            "petproducts", "petaccessories", "petmusthaves",
+            "pettoys", "petfinds",
         ],
         "shopify_queries": [
-            "home gadgets store", "home decor dropshipping store",
-            "kitchen gadgets shop", "home organization store",
+            "pet products store", "pet accessories shop",
+            "pet gadgets store", "pet supplies dropshipping",
         ],
         "aliexpress_queries": [
-            "home gadget", "kitchen gadget", "home organizer",
-            "home decor", "smart home device",
+            "pet gadget", "pet accessories", "pet toy",
+            "pet grooming tool", "pet carrier",
         ],
         "exclude_keywords": [
-            "furniture warehouse", "wholesale liquidation",
+            "pet insurance", "veterinary clinic",
+            "pet adoption agency", "pet boarding service",
+        ],
+    },
+    "diy_home_improvement": {
+        "label": "DIY / Home Improvement (tools, hardware, small renovation gadgets)",
+        "youtube_queries": [
+            "DIY tool TikTok made me buy it",
+            "viral home improvement gadget",
+            "must have DIY tool",
+            "cool home improvement invention",
+            "handyman gadget viral",
+        ],
+        "tiktok_hashtags": [
+            "diytools", "homeimprovement", "diyhacks",
+            "handymantips", "toolsoftiktok", "diygadgets", "homerenovation",
+        ],
+        "instagram_hashtags": [
+            "diytools", "homeimprovement", "diyhacks",
+            "handymantips", "diygadgets",
+        ],
+        "shopify_queries": [
+            "diy tools store", "home improvement shop",
+            "hardware gadgets store", "handyman tools dropshipping",
+        ],
+        "aliexpress_queries": [
+            "diy tool", "home improvement gadget", "hand tool set",
+            "hardware gadget", "renovation tool",
+        ],
+        "exclude_keywords": [
             "real estate", "mortgage", "home insurance",
+            "contractor service", "construction company",
         ],
     },
-    "hobby": {
-        "label": "Hobby (crafts, outdoor, gaming, DIY)",
+    "gardening": {
+        "label": "Gardening (tools, planters, outdoor gadgets)",
         "youtube_queries": [
-            "hobby gadget viral",
-            "cool hobby product TikTok made me buy it",
-            "craft tool must have",
-            "outdoor gear viral",
-            "gaming accessory viral",
+            "gardening gadget TikTok made me buy it",
+            "viral garden tool",
+            "must have gardening product",
+            "cool garden invention",
+            "garden hack viral",
         ],
         "tiktok_hashtags": [
-            "hobbyfinds", "crafttools", "diytools",
-            "outdoorgear", "gamingaccessories", "hobbygadgets",
+            "gardeningtiktok", "gardentools", "gardenhacks",
+            "gardengadgets", "plantsoftiktok", "gardenfinds",
         ],
         "instagram_hashtags": [
-            "hobbyfinds", "crafttools", "diytools",
-            "outdoorgear", "gaminggadgets",
+            "gardening", "gardentools", "gardenhacks",
+            "gardengadgets", "gardenfinds",
         ],
         "shopify_queries": [
-            "hobby gear store", "craft supplies dropshipping store",
-            "outdoor gear shop", "gaming accessories store",
+            "gardening tools store", "garden gadgets shop",
+            "planter store", "garden supplies dropshipping",
         ],
         "aliexpress_queries": [
-            "craft supplies", "diy tool kit", "resin art kit",
-            "hobby gadget", "outdoor gear",
+            "garden tool", "gardening gadget", "planter pot",
+            "watering tool", "garden gloves",
         ],
-        "exclude_keywords": ["casino", "gambling", "lottery"],
+        "exclude_keywords": [
+            "landscaping service", "lawn care service",
+            "garden design consultant",
+        ],
+    },
+    "fishing": {
+        "label": "Fishing (gear, lures, accessories)",
+        "youtube_queries": [
+            "fishing gadget TikTok made me buy it",
+            "viral fishing lure",
+            "must have fishing gear",
+            "cool fishing invention",
+            "fishing hack viral",
+        ],
+        "tiktok_hashtags": [
+            "fishingtiktok", "fishinggear", "fishinglures",
+            "fishinghacks", "fishingaccessories", "fishingfinds",
+        ],
+        "instagram_hashtags": [
+            "fishing", "fishinggear", "fishinglures",
+            "fishinghacks", "fishingaccessories",
+        ],
+        "shopify_queries": [
+            "fishing gear store", "fishing tackle shop",
+            "fishing accessories store", "fishing lures dropshipping",
+        ],
+        "aliexpress_queries": [
+            "fishing gear", "fishing lure", "fishing tackle",
+            "fishing accessories", "fishing rod holder",
+        ],
+        "exclude_keywords": [
+            "fishing license", "fishing charter", "fishing guide service",
+        ],
     },
 }
 

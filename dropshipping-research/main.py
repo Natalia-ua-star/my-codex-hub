@@ -3,7 +3,7 @@ data, scores winners, and writes everything into results.xlsx.
 
 Usage:
     python main.py                       # full run, all sources
-    python main.py --niches dogs home     # limit to specific niches
+    python main.py --niches gardening fishing  # limit to specific niches
     python main.py --countries US GB      # limit to specific countries
     python main.py --skip youtube shopify # skip specific sources (cost control)
     python main.py --demo                 # generate results.xlsx from synthetic

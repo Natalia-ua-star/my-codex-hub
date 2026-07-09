@@ -15,9 +15,9 @@ them, and writes everything into `results.xlsx`.
 | Shopify competitors | SerpAPI (Google Search) | Global, English queries |
 | AliExpress | Apify actor (configurable), sorted by `orders` | Global marketplace, no geo split |
 
-Niches: **dogs** (accessories/gadgets only — food, treats, grooming and health
-products are filtered out), **home**, **hobby**. Edit `config.py` to change
-niches, keywords, hashtags, countries, or scoring weights.
+Niches: **auto_accessories**, **pet_products**, **diy_home_improvement**,
+**gardening**, **fishing**. Edit `config.py` to change niches, keywords,
+hashtags, countries, or scoring weights.
 
 ## Setup
 
@@ -37,7 +37,7 @@ python main.py --demo
 python main.py
 
 # Narrower run to control API cost:
-python main.py --niches dogs --countries US GB --skip tiktok_shop
+python main.py --niches fishing --countries US GB --skip tiktok_shop
 ```
 
 Output: `results.xlsx` with tabs `TikTok_Winners`, `Instagram_Winners`,
