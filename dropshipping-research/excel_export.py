@@ -1,4 +1,4 @@
-"""Builds results.xlsx with TikTok/Instagram/YouTube/Shopify tabs + a Summary dashboard."""
+"""Builds results.xlsx with TikTok/Instagram/YouTube/Shopify/AliExpress tabs + a Summary dashboard."""
 
 import pandas as pd
 from openpyxl.styles import Alignment, Font, PatternFill
@@ -75,12 +75,14 @@ def build_workbook(
     instagram_df: pd.DataFrame,
     youtube_df: pd.DataFrame,
     shopify_df: pd.DataFrame,
+    aliexpress_df: pd.DataFrame,
 ):
     sheets = {
         "TikTok_Winners": tiktok_df,
         "Instagram_Winners": instagram_df,
         "YouTube_Winners": youtube_df,
         "Shopify_Competitors": shopify_df,
+        "AliExpress_Winners": aliexpress_df,
     }
     sheets["Summary"] = _build_summary(sheets)
 

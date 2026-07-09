@@ -17,18 +17,19 @@ def _minmax(series: pd.Series) -> pd.Series:
     return (series - lo) / (hi - lo) * 100
 
 
-def add_score(df: pd.DataFrame, group_cols: list, metric_cols: list) -> pd.DataFrame:
+def add_score(df: pd.DataFrame, group_cols: list, metric_cols: list, weights: dict = None) -> pd.DataFrame:
     """Adds a 'score' column (0-100) to df, grouped by group_cols.
 
-    metric_cols are weighted per config.SCORE_WEIGHTS (missing weights default
-    to equal split of the remainder).
+    metric_cols are weighted per `weights` (defaults to config.SCORE_WEIGHTS;
+    missing weights default to equal split of the remainder).
     """
     if df.empty:
         df["score"] = pd.Series(dtype=float)
         return df
 
     df = df.copy()
-    weights = {col: config.SCORE_WEIGHTS.get(col, 0) for col in metric_cols if col in df.columns}
+    source_weights = weights if weights is not None else config.SCORE_WEIGHTS
+    weights = {col: source_weights.get(col, 0) for col in metric_cols if col in df.columns}
     weight_sum = sum(weights.values())
     if weight_sum == 0:
         weights = {col: 1 / len(weights) for col in weights}

@@ -1,5 +1,5 @@
-"""Dropshipping research pipeline: pulls TikTok/Instagram/YouTube/Shopify data,
-scores winners, and writes everything into results.xlsx.
+"""Dropshipping research pipeline: pulls TikTok/Instagram/YouTube/Shopify/AliExpress
+data, scores winners, and writes everything into results.xlsx.
 
 Usage:
     python main.py                       # full run, all sources
@@ -38,7 +38,8 @@ def parse_args():
                         help="Limit to specific niches (default: all configured niches).")
     parser.add_argument("--countries", nargs="+", default=None,
                         help="Limit to specific countries (default: %s)." % config.COUNTRIES)
-    parser.add_argument("--skip", nargs="+", choices=["youtube", "tiktok", "tiktok_shop", "instagram", "shopify"],
+    parser.add_argument("--skip", nargs="+",
+                        choices=["youtube", "tiktok", "tiktok_shop", "instagram", "shopify", "aliexpress"],
                         default=[], help="Skip one or more sources.")
     parser.add_argument("--output", default="results.xlsx", help="Output .xlsx path (default: results.xlsx).")
     parser.add_argument("--demo", action="store_true",
@@ -49,7 +50,7 @@ def parse_args():
 
 def _generate_demo_data(niches: dict, countries: list):
     rng = random.Random(42)
-    tiktok, instagram, youtube, shopify = [], [], [], []
+    tiktok, instagram, youtube, shopify, aliexpress = [], [], [], [], []
 
     for niche_key in niches:
         for country in countries:
@@ -98,7 +99,25 @@ def _generate_demo_data(niches: dict, countries: list):
                 "search_date": today_str(),
             })
 
-    return tiktok, instagram, youtube, shopify
+        for i in range(5):
+            rating = round(rng.uniform(3.8, 5.0), 1)
+            feedback_pct = rng.randint(90, 100)
+            aliexpress.append({
+                "niche": niche_key, "query": "demo query",
+                "title": f"Demo {niche_key} AliExpress product #{i}",
+                "url": f"https://www.aliexpress.com/item/demo{niche_key}{i}.html",
+                "price": round(rng.uniform(3, 40), 2),
+                "orders": rng.randint(50, 20_000),
+                "rating": rating,
+                "review_count": rng.randint(10, 5000),
+                "seller_name": f"Demo Store {i}",
+                "seller_rating": rating,
+                "seller_positive_feedback": f"{feedback_pct}%",
+                "trusted_seller": rating >= config.ALIEXPRESS_TRUSTED_SELLER_RATING or feedback_pct >= config.ALIEXPRESS_TRUSTED_SELLER_FEEDBACK_PCT,
+                "search_date": today_str(),
+            })
+
+    return tiktok, instagram, youtube, shopify, aliexpress
 
 
 def main():
@@ -110,8 +129,11 @@ def main():
 
     if args.demo:
         logger.info("DEMO MODE — generating synthetic sample data, no API calls will be made.")
-        tiktok_records, instagram_records, youtube_records, shopify_records = _generate_demo_data(niches, countries)
+        tiktok_records, instagram_records, youtube_records, shopify_records, aliexpress_records = (
+            _generate_demo_data(niches, countries)
+        )
     else:
+        from sources.aliexpress_source import fetch_aliexpress_winners
         from sources.instagram_source import fetch_instagram_winners
         from sources.shopify_serp_source import fetch_shopify_competitors
         from sources.tiktok_shop_source import fetch_tiktok_shop_winners
@@ -126,11 +148,13 @@ def main():
 
         instagram_records = [] if "instagram" in args.skip else fetch_instagram_winners(niches)
         shopify_records = [] if "shopify" in args.skip else fetch_shopify_competitors(niches)
+        aliexpress_records = [] if "aliexpress" in args.skip else fetch_aliexpress_winners(niches)
 
     tiktok_df = pd.DataFrame(tiktok_records)
     instagram_df = pd.DataFrame(instagram_records)
     youtube_df = pd.DataFrame(youtube_records)
     shopify_df = pd.DataFrame(shopify_records)
+    aliexpress_df = pd.DataFrame(aliexpress_records)
 
     if not tiktok_df.empty:
         tiktok_df = scoring.add_score(tiktok_df, ["niche", "country"], ["views", "likes", "comments", "shares"])
@@ -140,12 +164,20 @@ def main():
         youtube_df = scoring.add_score(youtube_df, ["niche", "country"], ["views", "likes", "comments"])
     if not shopify_df.empty:
         shopify_df = shopify_df.sort_values(["niche", "mentions"], ascending=[True, False])
+    if not aliexpress_df.empty:
+        aliexpress_df = scoring.add_score(
+            aliexpress_df, ["niche"], ["orders", "rating", "review_count"],
+            weights=config.ALIEXPRESS_SCORE_WEIGHTS,
+        )
 
-    output_path = excel_export.build_workbook(args.output, tiktok_df, instagram_df, youtube_df, shopify_df)
+    output_path = excel_export.build_workbook(
+        args.output, tiktok_df, instagram_df, youtube_df, shopify_df, aliexpress_df,
+    )
 
     logger.info(
-        "Done. %s: TikTok=%d, Instagram=%d, YouTube=%d, Shopify=%d -> %s",
-        today_str(), len(tiktok_df), len(instagram_df), len(youtube_df), len(shopify_df), output_path,
+        "Done. %s: TikTok=%d, Instagram=%d, YouTube=%d, Shopify=%d, AliExpress=%d -> %s",
+        today_str(), len(tiktok_df), len(instagram_df), len(youtube_df), len(shopify_df),
+        len(aliexpress_df), output_path,
     )
 
 

@@ -25,6 +25,7 @@ TIKTOK_SHOP_COUNTRIES = ["US", "GB"]
 TIKTOK_ACTOR_ID = os.getenv("TIKTOK_ACTOR_ID", "clockworks/tiktok-scraper")
 TIKTOK_SHOP_ACTOR_ID = os.getenv("TIKTOK_SHOP_ACTOR_ID", "novi/tiktok-shop-scraper")
 INSTAGRAM_ACTOR_ID = os.getenv("INSTAGRAM_ACTOR_ID", "apify/instagram-scraper")
+ALIEXPRESS_ACTOR_ID = os.getenv("ALIEXPRESS_ACTOR_ID", "thirdwatch/aliexpress-product-scraper")
 
 # NOTE on Apify actors: input schemas are defined by each actor's author and can
 # change over time. Field names used in sources/*.py reflect the commonly
@@ -40,6 +41,11 @@ YOUTUBE_PUBLISHED_WITHIN_DAYS = 90  # only look at recent/trending videos
 TIKTOK_RESULTS_PER_HASHTAG = 30
 INSTAGRAM_RESULTS_PER_HASHTAG = 30
 SHOPIFY_RESULTS_PER_QUERY = 20
+ALIEXPRESS_RESULTS_PER_QUERY = 30
+
+# A seller is flagged "trusted" if its star rating or positive-feedback % clears these.
+ALIEXPRESS_TRUSTED_SELLER_RATING = 4.5     # out of 5 stars
+ALIEXPRESS_TRUSTED_SELLER_FEEDBACK_PCT = 95  # % positive feedback
 
 # --- Niches --------------------------------------------------------------------
 # "dogs" niche explicitly EXCLUDES food/treats/grooming/health products (per spec) —
@@ -65,6 +71,10 @@ NICHES = {
         "shopify_queries": [
             "dog accessories store", "dog gadgets shop",
             "dog toys online store", "dog gear dropshipping",
+        ],
+        "aliexpress_queries": [
+            "dog gadget", "dog accessories", "dog toy",
+            "dog harness reflective", "dog cooling vest",
         ],
         "exclude_keywords": [
             "food", "kibble", "treat", "treats", "chew supplement",
@@ -93,6 +103,10 @@ NICHES = {
             "home gadgets store", "home decor dropshipping store",
             "kitchen gadgets shop", "home organization store",
         ],
+        "aliexpress_queries": [
+            "home gadget", "kitchen gadget", "home organizer",
+            "home decor", "smart home device",
+        ],
         "exclude_keywords": [
             "furniture warehouse", "wholesale liquidation",
             "real estate", "mortgage", "home insurance",
@@ -119,6 +133,10 @@ NICHES = {
             "hobby gear store", "craft supplies dropshipping store",
             "outdoor gear shop", "gaming accessories store",
         ],
+        "aliexpress_queries": [
+            "craft supplies", "diy tool kit", "resin art kit",
+            "hobby gadget", "outdoor gear",
+        ],
         "exclude_keywords": ["casino", "gambling", "lottery"],
     },
 }
@@ -131,4 +149,12 @@ SCORE_WEIGHTS = {
     "likes": 0.3,
     "comments": 0.15,
     "shares": 0.15,
+}
+
+# AliExpress winners are scored on best-seller signal (orders) + trust (rating,
+# review volume) rather than social engagement.
+ALIEXPRESS_SCORE_WEIGHTS = {
+    "orders": 0.5,
+    "rating": 0.3,
+    "review_count": 0.2,
 }
