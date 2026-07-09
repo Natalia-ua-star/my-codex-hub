@@ -10,6 +10,9 @@ Usage:
                                            # sample data, no API calls — use this
                                            # to preview the workbook format first
     python main.py --output my_results.xlsx
+    python main.py --push-to-sheets          # also append today's winners into
+                                              # Google Sheets (needs sheets_sync.py
+                                              # setup — see README)
 """
 
 import argparse
@@ -45,6 +48,10 @@ def parse_args():
     parser.add_argument("--demo", action="store_true",
                         help="Skip all API calls and build results.xlsx from synthetic sample data, "
                              "so you can check the workbook format before spending API quota.")
+    parser.add_argument("--push-to-sheets", action="store_true",
+                        help="After building the workbook, also APPEND today's rows into Google Sheets "
+                             "(main spreadsheet + a separate AliExpress spreadsheet). Requires "
+                             "GOOGLE_SERVICE_ACCOUNT_FILE in .env — see README.")
     return parser.parse_args()
 
 
@@ -179,6 +186,26 @@ def main():
         today_str(), len(tiktok_df), len(instagram_df), len(youtube_df), len(shopify_df),
         len(aliexpress_df), output_path,
     )
+
+    if args.push_to_sheets:
+        if args.demo:
+            logger.warning("Refusing to push demo/synthetic data to Google Sheets. Re-run without --demo.")
+        else:
+            import sheets_sync
+            main_id, aliexpress_id = sheets_sync.sync_all(
+                {
+                    "TikTok_Winners": tiktok_df,
+                    "Instagram_Winners": instagram_df,
+                    "YouTube_Winners": youtube_df,
+                    "Shopify_Competitors": shopify_df,
+                },
+                aliexpress_df,
+            )
+            logger.info(
+                "Pushed to Google Sheets. Main: https://docs.google.com/spreadsheets/d/%s | "
+                "AliExpress: https://docs.google.com/spreadsheets/d/%s",
+                main_id, aliexpress_id,
+            )
 
 
 if __name__ == "__main__":

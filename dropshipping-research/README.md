@@ -44,6 +44,45 @@ Output: `results.xlsx` with tabs `TikTok_Winners`, `Instagram_Winners`,
 `YouTube_Winners`, `Shopify_Competitors`, `AliExpress_Winners`, `Summary`.
 Every row includes a `search_date` column.
 
+## Google Sheets sync (daily auto-append)
+
+`python main.py --push-to-sheets` appends today's rows into **two live Google
+Sheets** (not the local `results.xlsx`) — rows accumulate day over day, they
+are never overwritten:
+
+- **Main spreadsheet** — tabs `TikTok_Winners`, `Instagram_Winners`,
+  `YouTube_Winners`, `Shopify_Competitors`.
+- **Separate AliExpress spreadsheet** — tab `AliExpress_Winners`.
+
+This needs its own credential (a Google service account), separate from the
+3 content API keys, because appending rows to an existing sheet requires the
+real Sheets API — a plain "connect your Google account" OAuth connector can
+only create/replace whole files, not append. One-time setup:
+
+1. [console.cloud.google.com](https://console.cloud.google.com) → a project
+   (can be the same one as your YouTube API key) → **APIs & Services →
+   Library** → enable **Google Sheets API**.
+2. **APIs & Services → Credentials → Create Credentials → Service account**
+   → give it any name → **Keys → Add Key → Create new key → JSON** → download
+   it, save it in this folder as `service_account.json` (already git-ignored).
+3. Open the downloaded JSON, copy the `client_email` value (looks like
+   `xxx@yyy.iam.gserviceaccount.com`).
+4. Set `GOOGLE_SERVICE_ACCOUNT_FILE=service_account.json` in `.env`.
+5. Run `python main.py --push-to-sheets` once. On this first run
+   `MAIN_SPREADSHEET_ID`/`ALIEXPRESS_SPREADSHEET_ID` are blank, so the script
+   **creates both spreadsheets** and logs their IDs and URLs.
+6. **Share each new spreadsheet** with the `client_email` from step 3 as
+   **Editor** (File → Share in Google Sheets) — otherwise the next run can't
+   write to it.
+7. Copy both IDs from the logs into `MAIN_SPREADSHEET_ID` /
+   `ALIEXPRESS_SPREADSHEET_ID` in `.env` so every future run appends to the
+   *same* two sheets instead of creating new ones.
+
+To actually run **every day** automatically, schedule `python main.py
+--push-to-sheets` with cron (Linux/Mac), Task Scheduler (Windows), or a
+Claude Code Routine (`create_trigger` with a daily `cron_expression`) that
+fires this command in your project folder.
+
 ## AliExpress winner + trust analysis
 
 `AliExpress_Winners` is sorted by order count (best-sellers) per niche and

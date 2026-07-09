@@ -14,6 +14,14 @@ YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY", "")
 APIFY_API_TOKEN = os.getenv("APIFY_API_TOKEN", "")
 SERP_API_KEY = os.getenv("SERP_API_KEY", "")
 
+# --- Google Sheets sync (optional — only needed for --push-to-sheets) -------------
+# Service account JSON key path (see sheets_sync.py docstring for one-time setup).
+GOOGLE_SERVICE_ACCOUNT_FILE = os.getenv("GOOGLE_SERVICE_ACCOUNT_FILE", "")
+# Leave blank on first run — sheets_sync.py will create the spreadsheet and log
+# its ID so you can paste it in here for subsequent runs to append to the same file.
+MAIN_SPREADSHEET_ID = os.getenv("MAIN_SPREADSHEET_ID", "")
+ALIEXPRESS_SPREADSHEET_ID = os.getenv("ALIEXPRESS_SPREADSHEET_ID", "")
+
 # --- Geo scope ---------------------------------------------------------------------
 # English-speaking markets only.
 COUNTRIES = ["US", "GB", "AU", "CA", "NZ"]
