@@ -15,12 +15,34 @@ second actor call, e.g. one of the dedicated AliExpress reviews scrapers.
 """
 
 import logging
+import time
 
 import config
 from sources.apify_utils import run_actor_and_get_items
 from sources.common import contains_excluded, safe_get, today_str
 
 logger = logging.getLogger(__name__)
+
+# AliExpress's anti-bot protection intermittently makes the actor "succeed"
+# with 0 items (no error raised) instead of a clean failure. Retrying after a
+# short delay recovers most of these — it's a transient block, not a broken
+# query.
+ZERO_RESULT_RETRIES = 2
+ZERO_RESULT_RETRY_DELAY_SECONDS = 8
+
+
+def _run_with_retry(token: str, actor_id: str, run_input: dict) -> list:
+    items = run_actor_and_get_items(token, actor_id, run_input)
+    attempt = 0
+    while not items and attempt < ZERO_RESULT_RETRIES:
+        attempt += 1
+        logger.warning(
+            "AliExpress query returned 0 items (likely anti-bot block) — retry %d/%d for input=%s",
+            attempt, ZERO_RESULT_RETRIES, run_input,
+        )
+        time.sleep(ZERO_RESULT_RETRY_DELAY_SECONDS)
+        items = run_actor_and_get_items(token, actor_id, run_input)
+    return items
 
 
 def _build_input(query: str) -> dict:
@@ -111,7 +133,7 @@ def fetch_aliexpress_winners(niches: dict) -> list:
 
         for query in queries:
             run_input = _build_input(query)
-            items = run_actor_and_get_items(token, config.ALIEXPRESS_ACTOR_ID, run_input)
+            items = _run_with_retry(token, config.ALIEXPRESS_ACTOR_ID, run_input)
 
             for item in items:
                 record = _normalize_item(item, niche_key, query)
