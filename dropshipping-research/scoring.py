@@ -10,11 +10,16 @@ import pandas as pd
 import config
 
 
-def _minmax(series: pd.Series) -> pd.Series:
-    lo, hi = series.min(), series.max()
-    if pd.isna(lo) or pd.isna(hi) or hi == lo:
-        return pd.Series(50.0, index=series.index)  # flat group -> neutral score
-    return (series - lo) / (hi - lo) * 100
+def _minmax_via_transform(df: pd.DataFrame, group_cols: list, values: pd.Series) -> pd.Series:
+    """Per-group min-max scaling to 0-100 using groupby().transform(), which
+    always returns a Series aligned to df's original index — unlike
+    groupby().apply(), it doesn't misbehave when there's only one group."""
+    grouped = values.groupby([df[c] for c in group_cols])
+    lo = grouped.transform("min")
+    hi = grouped.transform("max")
+    flat = (hi == lo) | lo.isna() | hi.isna()
+    scaled = (values - lo) / (hi - lo).replace(0, pd.NA) * 100
+    return scaled.where(~flat, 50.0)  # flat group -> neutral score
 
 
 def add_score(df: pd.DataFrame, group_cols: list, metric_cols: list, weights: dict = None) -> pd.DataFrame:
@@ -38,14 +43,10 @@ def add_score(df: pd.DataFrame, group_cols: list, metric_cols: list, weights: di
         # (e.g. "shares") isn't available for this platform.
         weights = {col: w / weight_sum for col, w in weights.items()}
 
-    def _score_group(group: pd.DataFrame) -> pd.Series:
-        weighted = pd.Series(0.0, index=group.index)
-        for col in metric_cols:
-            if col not in group.columns:
-                continue
-            values = pd.to_numeric(group[col], errors="coerce").fillna(0)
-            weighted += _minmax(values) * weights[col]
-        return round(weighted, 2)
+    weighted_total = pd.Series(0.0, index=df.index)
+    for col, weight in weights.items():
+        values = pd.to_numeric(df[col], errors="coerce").fillna(0)
+        weighted_total += _minmax_via_transform(df, group_cols, values).fillna(50.0) * weight
 
-    df["score"] = df.groupby(group_cols, dropna=False, group_keys=False).apply(_score_group)
+    df["score"] = weighted_total.round(2)
     return df.sort_values(group_cols + ["score"], ascending=[True] * len(group_cols) + [False])
