@@ -49,6 +49,7 @@ YOUTUBE_PUBLISHED_WITHIN_DAYS = 90  # only look at recent/trending videos
 TIKTOK_RESULTS_PER_HASHTAG = 30
 INSTAGRAM_RESULTS_PER_HASHTAG = 30
 SHOPIFY_RESULTS_PER_QUERY = 20
+SHOPIFY_TOP_N_PER_NICHE = 20
 ALIEXPRESS_RESULTS_PER_QUERY = 30
 
 # A seller is flagged "trusted" if its star rating or positive-feedback % clears these.

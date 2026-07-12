@@ -50,8 +50,9 @@ def _search(query: str) -> list:
 
 
 def fetch_shopify_competitors(niches: dict) -> list:
-    """Returns top-10 candidate Shopify competitor domains per niche, ranked
-    by how many distinct queries surfaced them (a proxy for market visibility)."""
+    """Returns top-N (config.SHOPIFY_TOP_N_PER_NICHE) candidate Shopify
+    competitor domains per niche, ranked by how many distinct queries
+    surfaced them (a proxy for market visibility)."""
     if not config.SERP_API_KEY:
         logger.warning("SERP_API_KEY is not set — skipping Shopify competitor source.")
         return []
@@ -79,7 +80,7 @@ def fetch_shopify_competitors(niches: dict) -> list:
                 domain_hits[domain]["mentions"] += 1
 
         ranked = sorted(domain_hits.items(), key=lambda kv: kv[1]["mentions"], reverse=True)
-        for domain, info in ranked[:10]:
+        for domain, info in ranked[:config.SHOPIFY_TOP_N_PER_NICHE]:
             records.append({
                 "niche": niche_key,
                 "domain": domain,
