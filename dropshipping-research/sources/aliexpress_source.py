@@ -1,13 +1,17 @@
-"""Apify AliExpress Scraper — best-selling products per niche + review/seller-rating analysis.
+"""Apify AliExpress Scraper — best-selling products per niche + rating-based trust analysis.
 
-Sorts by order count (best sellers) and pulls each product's rating, review
-count, and seller/store rating so winners can be filtered by trust, not just
-sales volume.
-
-Several different authors publish AliExpress scraper actors on Apify with
-different input schemas. ALIEXPRESS_ACTOR_ID in config.py (overridable via
-.env) picks which one to call — open its "Input" tab on the Apify console
-before a real run and confirm the field names below still match.
+Sorts by order count (best sellers) and pulls each product's price and star
+rating. Input AND output field names below match the real schema of
+thirdwatch/aliexpress-product-scraper (confirmed live on 2026-07-12 —
+input: "queries"/"maxResults"/"sortBy"/"country"; output:
+"orders_count"/"rating"/"sale_price", no seller/store name, no separate
+review count). If ALIEXPRESS_ACTOR_ID (config.py / .env) points to a
+different actor, re-check its Input/output on the Apify console and update
+`_build_input`/`_normalize_item` — this one specifically does NOT expose
+seller-level rating or review counts, only the product's own star rating, so
+`trusted_seller` here falls back to product rating alone. For true
+seller/store-level trust data (separate from product rating) you'd need a
+second actor call, e.g. one of the dedicated AliExpress reviews scrapers.
 """
 
 import logging
@@ -21,17 +25,14 @@ logger = logging.getLogger(__name__)
 
 def _build_input(query: str) -> dict:
     return {
-        "query": query,
-        "keywords": query,
+        "queries": [query],
         "sortBy": "orders",       # best-sellers first
-        "sortType": "orders",
-        "maxItems": config.ALIEXPRESS_RESULTS_PER_QUERY,
-        "resultsLimit": config.ALIEXPRESS_RESULTS_PER_QUERY,
-        "endPage": 1,
+        "maxResults": config.ALIEXPRESS_RESULTS_PER_QUERY,
+        "country": "US",
     }
 
 
-def _is_trusted_seller(seller_rating, seller_feedback_pct) -> bool:
+def _is_trusted_seller(seller_rating, seller_feedback_pct, product_rating) -> bool:
     try:
         if seller_rating not in (None, "") and float(seller_rating) >= config.ALIEXPRESS_TRUSTED_SELLER_RATING:
             return True
@@ -44,13 +45,20 @@ def _is_trusted_seller(seller_rating, seller_feedback_pct) -> bool:
                 return True
     except (TypeError, ValueError):
         pass
+    # Fallback for actors (like the default one) that don't expose seller-level
+    # data at all: use the product's own star rating against the same bar.
+    try:
+        if product_rating not in (None, "") and float(product_rating) >= config.ALIEXPRESS_TRUSTED_SELLER_RATING:
+            return True
+    except (TypeError, ValueError):
+        pass
     return False
 
 
 def _normalize_item(item: dict, niche_key: str, query: str) -> dict:
     title = safe_get(item, "title", "productTitle", "name", default="")
-    price = safe_get(item, "price", "salePrice", "minPrice", default="")
-    orders = safe_get(item, "orders", "orderCount", "soldCount", "sales", default=0)
+    price = safe_get(item, "sale_price", "price", "salePrice", "minPrice", default="")
+    orders = safe_get(item, "orders_count", "orders", "orderCount", "soldCount", "sales", default=0)
     rating = safe_get(item, "rating", "averageStarRating", "productRating", "starRating", default="")
     review_count = safe_get(item, "reviewCount", "reviewsCount", "feedbackCount", default=0)
     seller_name = safe_get(item, "storeName", "sellerName", "shopName", default="")
@@ -82,7 +90,7 @@ def _normalize_item(item: dict, niche_key: str, query: str) -> dict:
         "seller_name": seller_name,
         "seller_rating": seller_rating,
         "seller_positive_feedback": seller_feedback_pct,
-        "trusted_seller": _is_trusted_seller(seller_rating, seller_feedback_pct),
+        "trusted_seller": _is_trusted_seller(seller_rating, seller_feedback_pct, rating_num),
         "search_date": today_str(),
     }
 
