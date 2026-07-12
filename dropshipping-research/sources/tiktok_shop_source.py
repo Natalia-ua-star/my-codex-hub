@@ -9,8 +9,6 @@ names below match; adjust `_build_input` / `_normalize_item` if not.
 
 import logging
 
-from apify_client import ApifyClient
-
 import config
 from sources.apify_utils import run_actor_and_get_items
 from sources.common import contains_excluded, safe_get, today_str
@@ -55,7 +53,7 @@ def fetch_tiktok_shop_winners(niches: dict) -> list:
         logger.warning("APIFY_API_TOKEN is not set — skipping TikTok Shop source.")
         return []
 
-    client = ApifyClient(config.APIFY_API_TOKEN)
+    token = config.APIFY_API_TOKEN
     records = []
 
     for niche_key, niche_cfg in niches.items():
@@ -64,7 +62,7 @@ def fetch_tiktok_shop_winners(niches: dict) -> list:
 
         for country in config.TIKTOK_SHOP_COUNTRIES:
             run_input = _build_input(keywords, country)
-            items = run_actor_and_get_items(client, config.TIKTOK_SHOP_ACTOR_ID, run_input)
+            items = run_actor_and_get_items(token, config.TIKTOK_SHOP_ACTOR_ID, run_input)
 
             for item in items:
                 record = _normalize_item(item, niche_key, country)

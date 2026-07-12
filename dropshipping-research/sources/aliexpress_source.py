@@ -12,8 +12,6 @@ before a real run and confirm the field names below still match.
 
 import logging
 
-from apify_client import ApifyClient
-
 import config
 from sources.apify_utils import run_actor_and_get_items
 from sources.common import contains_excluded, safe_get, today_str
@@ -96,7 +94,7 @@ def fetch_aliexpress_winners(niches: dict) -> list:
         logger.warning("APIFY_API_TOKEN is not set — skipping AliExpress source.")
         return []
 
-    client = ApifyClient(config.APIFY_API_TOKEN)
+    token = config.APIFY_API_TOKEN
     records = []
 
     for niche_key, niche_cfg in niches.items():
@@ -105,7 +103,7 @@ def fetch_aliexpress_winners(niches: dict) -> list:
 
         for query in queries:
             run_input = _build_input(query)
-            items = run_actor_and_get_items(client, config.ALIEXPRESS_ACTOR_ID, run_input)
+            items = run_actor_and_get_items(token, config.ALIEXPRESS_ACTOR_ID, run_input)
 
             for item in items:
                 record = _normalize_item(item, niche_key, query)

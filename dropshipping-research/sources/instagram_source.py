@@ -6,8 +6,6 @@ are grouped by niche only (English-language hashtags across all target markets).
 
 import logging
 
-from apify_client import ApifyClient
-
 import config
 from sources.apify_utils import run_actor_and_get_items
 from sources.common import contains_excluded, safe_get, today_str
@@ -57,7 +55,7 @@ def fetch_instagram_winners(niches: dict) -> list:
         logger.warning("APIFY_API_TOKEN is not set — skipping Instagram source.")
         return []
 
-    client = ApifyClient(config.APIFY_API_TOKEN)
+    token = config.APIFY_API_TOKEN
     records = []
 
     for niche_key, niche_cfg in niches.items():
@@ -65,7 +63,7 @@ def fetch_instagram_winners(niches: dict) -> list:
         exclude_keywords = niche_cfg.get("exclude_keywords", [])
 
         run_input = _build_input(hashtags)
-        items = run_actor_and_get_items(client, config.INSTAGRAM_ACTOR_ID, run_input)
+        items = run_actor_and_get_items(token, config.INSTAGRAM_ACTOR_ID, run_input)
 
         for item in items:
             record = _normalize_item(item, niche_key)

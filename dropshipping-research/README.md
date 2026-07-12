@@ -109,6 +109,12 @@ a follow-up if you need per-review text/sentiment, not just rating aggregates.
   within budget.
 - **API keys never get written to `results.xlsx` or logged.** `.env` is
   git-ignored.
+- **Apify calls use the REST API directly (`requests`), not the `apify-client`
+  SDK.** See `sources/apify_utils.py` docstring — the SDK's HTTP backend
+  failed every request in a sandboxed environment whose network policy
+  otherwise allowed `api.apify.com` fine. If you're not on such a sandbox and
+  prefer the SDK, swapping `apify_utils.py` back to `ApifyClient` is a small
+  change.
 
 ## Scoring
 
