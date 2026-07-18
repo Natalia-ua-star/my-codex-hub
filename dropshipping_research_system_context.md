@@ -206,12 +206,22 @@ product_description, problem_solved, target_audience, wow_factor, demo_potential
 seasonality, first_found_source, status, notes
 ```
 
-### TAB 4 — `06_Keywords` (sheet_id: 445875570, last_row: 2)
+### TAB 4 — `06_Keywords` (sheet_id: 445875570)
+Фактичний порядок колонок (підтверджено 18.07.2026; відрізняється від
+початкового експорту — усі Sheets-вузли мусять мапитися за назвами заголовків):
 ```
-keyword_id, product_id, niche_id, niche, keyword, keyword_type, search_platform,
-country, language, search_intent, date_checked, result_count, trend_direction,
-usefulness, status, notes
+keyword_id, niche_id, status, keyword, niche, product_id, keyword_type,
+search_platform, country, language, search_intent, date_checked, result_count,
+trend_direction, usefulness, notes
 ```
+Модель зберігання — **групова**: один рядок на рівень ключа
+(`EXACT` / `CORE` / `RELATED`), формат `keyword_id` —
+`KEY-{niche}-{code}-{LEVEL}` (наприклад `KEY-003-MDDC2026-EXACT`),
+країни списком через кому в полі `country`. По-країнна деталізація
+перевірок живе в `03_Market_Signals`, а розгортання «ключ × країна»
+відбувається лише в пам'яті workflow (Expand-вузол) і у вкладку не пишеться.
+Поле `usefulness` — ручна оцінка корисності ключа; автоматика його не
+перезаписує (якість даних перевірок фіксується в `notes`).
 
 ### TAB 5 — `03_Market_Signals` (sheet_id: 899344591, last_row: 1)
 ```
