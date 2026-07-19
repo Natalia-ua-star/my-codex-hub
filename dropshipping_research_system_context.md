@@ -213,7 +213,14 @@ URL приймається тільки коли одночасно підтве
   (hash від тексту+країни), дедуплікація в межах прогону.
   Живий прогін 19.07.2026 дав чистий вихід: знахідки Thickness planer
   (Breakout US), Drill bit / Hammer drill / Drill Dust Collector (GB)
-  і бренд-сигнали Bosch, Makita, Milwaukee Tool. Тест 19.07.2026 на ключі
+  і бренд-сигнали Bosch, Makita, Milwaukee Tool. Запис у вкладки
+  підключено й перевірено: кандидати → `06_Keywords` (Append or Update
+  за по-країнним `keyword_id` виду `KEY-…-C{hash}-{CC}`; `usefulness`,
+  `product_id`, трендові поля не мапляться), знахідки → `10_Discoveries`
+  (за `discovery_id`; рекламні колонки, `store_urls`, `product_id`
+  лишаються порожніми до пізніших гілок), бренд-сигнали — поки NoOp.
+  Тестові рядки від сіда `drill dust collector` підлягають видаленню
+  перед бойовим прогоном. Тест 19.07.2026 на ключі
   `drill dust collector` (US, GB): у топі US — `nail dust collector`
   (суміжна манікюрна ніша, кандидат у Discoveries), підтверджено власний
   RELATED-ключ `hammer drill dust collector` (+60% rising).
