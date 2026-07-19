@@ -218,7 +218,10 @@ URL приймається тільки коли одночасно підтве
   за по-країнним `keyword_id` виду `KEY-…-C{hash}-{CC}`; `usefulness`,
   `product_id`, трендові поля не мапляться), знахідки → `10_Discoveries`
   (за `discovery_id`; рекламні колонки, `store_urls`, `product_id`
-  лишаються порожніми до пізніших гілок), бренд-сигнали — поки NoOp.
+  лишаються порожніми до пізніших гілок), бренд-сигнали → `11_Brands`
+  (Append or Update за `brand_id`, `first_seen` не мапиться; агрегація
+  перевірена живим прогоном: Robert Bosch — US, Milwaukee Tool і
+  Makita — US,GB, згадки по країнах/списках у notes).
   Тестові рядки від сіда `drill dust collector` підлягають видаленню
   перед бойовим прогоном. Тест 19.07.2026 на ключі
   `drill dust collector` (US, GB): у топі US — `nail dust collector`
