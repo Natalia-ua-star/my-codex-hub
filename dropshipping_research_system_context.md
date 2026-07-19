@@ -206,9 +206,14 @@ URL приймається тільки коли одночасно підтве
   далі два SerpApi-запити (`RELATED_QUERIES`, `RELATED_TOPICS`, обов'язково
   з `geo`) і два вузли нормалізації: `Analyze Related Queries`
   (TOP → кандидати `06_Keywords` зі статусом NEW, RISING → `10_Discoveries`)
-  та `Analyze Related Topics` (RISING-теми → `10_Discoveries`,
-  теми-компанії → бренд-сигнали). ID детерміновані (hash від тексту+країни),
-  дедуплікація в межах прогону. Тест 19.07.2026 на ключі
+  та `Analyze Related Topics` (компанії з TOP і RISING → бренд-сигнали;
+  RISING-теми → `10_Discoveries` тільки після фільтра релевантності:
+  назва з 2+ слів або перетин із токенами сід-ключа — однослівні
+  абстракції на кшталт Art/Wall/Ceiling відкидаються). ID детерміновані
+  (hash від тексту+країни), дедуплікація в межах прогону.
+  Живий прогін 19.07.2026 дав чистий вихід: знахідки Thickness planer
+  (Breakout US), Drill bit / Hammer drill / Drill Dust Collector (GB)
+  і бренд-сигнали Bosch, Makita, Milwaukee Tool. Тест 19.07.2026 на ключі
   `drill dust collector` (US, GB): у топі US — `nail dust collector`
   (суміжна манікюрна ніша, кандидат у Discoveries), підтверджено власний
   RELATED-ключ `hammer drill dust collector` (+60% rising).
