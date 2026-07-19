@@ -327,6 +327,19 @@ total_score, decision, next_action, analyzed_at
 list_name, list_value, sort_order, active
 ```
 
+### TAB 12 — `08_Brands` (додано 19.07.2026)
+```
+brand_id, brand_name, brand_type, topic_mid, niche_id, seed_keyword,
+countries, list, best_position, top_value, source, first_seen, last_seen,
+status, notes
+```
+Бренди з Related Topics (компанії з TOP і RISING). Один рядок = один бренд
+(`brand_id` = `BRD-{hash(назви)}`), країни списком через кому, згадки по
+країнах/списках — у `notes`. Append or Update за `brand_id`; `first_seen`
+не мапиться (зберігає дату першої появи). Використання: оцінка насиченості
+ніші (`saturation_score`/`competition_score`), черга перевірки Meta Ads,
+фільтр брендових ключів серед кандидатів.
+
 ### Нотатки щодо схеми
 
 - У `03_Market_Signals` є дубльовані за змістом пари колонок: `keyword_used`/`keyword`
