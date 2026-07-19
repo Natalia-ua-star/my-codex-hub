@@ -223,7 +223,11 @@ URL приймається тільки коли одночасно підтве
   перевірена живим прогоном: Robert Bosch — US, Milwaukee Tool і
   Makita — US,GB, згадки по країнах/списках у notes).
   Тестові рядки від сіда `drill dust collector` підлягають видаленню
-  перед бойовим прогоном. Тест 19.07.2026 на ключі
+  перед бойовим прогоном. Звіт у Telegram-канал підключено:
+  `Analyze Related Queries` + `Analyze Related Topics` →
+  `Merge Related Results` (Append) → `Build Related Report` →
+  `Send Related Report` (статистика кандидатів/знахідок/брендів і
+  наступні кроки; запис у таби йде паралельною гілкою через Switch). Тест 19.07.2026 на ключі
   `drill dust collector` (US, GB): у топі US — `nail dust collector`
   (суміжна манікюрна ніша, кандидат у Discoveries), підтверджено власний
   RELATED-ключ `hammer drill dust collector` (+60% rising).
