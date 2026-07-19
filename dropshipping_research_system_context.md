@@ -200,6 +200,19 @@ URL приймається тільки коли одночасно підтве
   органічний пошуковий попит на точний ключ слабкий, рішення тягнуть
   Shopping- і рекламні сигнали.
 
+- побудована й перевірена на живих даних гілка **Trends Related**: після
+  `Analyze Google Trend` стоїть IF (`trend_direction` ≠ NO_DATA і ≠
+  SPIKES_ONLY — related перевіряється лише в країнах з реальним сигналом),
+  далі два SerpApi-запити (`RELATED_QUERIES`, `RELATED_TOPICS`, обов'язково
+  з `geo`) і два вузли нормалізації: `Analyze Related Queries`
+  (TOP → кандидати `06_Keywords` зі статусом NEW, RISING → `10_Discoveries`)
+  та `Analyze Related Topics` (RISING-теми → `10_Discoveries`,
+  теми-компанії → бренд-сигнали). ID детерміновані (hash від тексту+країни),
+  дедуплікація в межах прогону. Тест 19.07.2026 на ключі
+  `drill dust collector` (US, GB): у топі US — `nail dust collector`
+  (суміжна манікюрна ніша, кандидат у Discoveries), підтверджено власний
+  RELATED-ключ `hammer drill dust collector` (+60% rising).
+
 **Наступний крок:** прогнати гілку Shopping (протягнути `product_id` у групові рядки `06_Keywords`); записати підтверджені оголошення в `09_Ads`, агрегувати їх за `competitor_id` і оновити рекламний аналіз у `05_Competitors`.
 
 ---
