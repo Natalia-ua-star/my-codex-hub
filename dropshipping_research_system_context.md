@@ -327,7 +327,7 @@ total_score, decision, next_action, analyzed_at
 list_name, list_value, sort_order, active
 ```
 
-### TAB 12 — `08_Brands` (додано 19.07.2026)
+### TAB 12 — `11_Brands` (додано 19.07.2026)
 ```
 brand_id, brand_name, brand_type, topic_mid, niche_id, seed_keyword,
 countries, list, best_position, top_value, source, first_seen, last_seen,
