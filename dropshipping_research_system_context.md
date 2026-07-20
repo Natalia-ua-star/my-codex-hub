@@ -280,13 +280,22 @@ Append or Update у вкладку йде за по-країнним `keyword_id
 Поле `usefulness` — ручна оцінка корисності ключа; автоматика його не
 перезаписує (якість даних перевірок фіксується в `notes`).
 
-### TAB 5 — `03_Market_Signals` (sheet_id: 899344591, last_row: 1)
+### TAB 5 — `03_Market_Signals` (sheet_id: 899344591)
 ```
 signal_id, product_id, source, signal_type, source_url, keyword_used, country,
 date_found, content_date, days_running, views, likes, comments, shares, rank,
 rating, reviews, trend_direction, signal_score, notes, keyword, date_checked,
 saves, CTR
 ```
+Додано 20.07.2026 для сигналів Google Shopping (числові агрегати по країні,
+щоб не витягати їх із `notes` на етапі скорингу):
+```
+niche_id, keyword_id, offers_total, stores_total, price_min, price_max,
+price_median, free_delivery_count, discounted_offers
+```
+Shopping-сигнал: `signal_type = SHOPPING_OFFERS`, один рядок = товар × країна,
+`signal_id = SIG-{hash(product_id|shopping|країна)}`, Append or Update за
+`signal_id`.
 
 ### TAB 6 — `09_Ads` (sheet_id: 1415266174, last_row: 1)
 ```
