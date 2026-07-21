@@ -244,6 +244,18 @@ URL приймається тільки коли одночасно підтве
   (суміжна манікюрна ніша, кандидат у Discoveries), підтверджено власний
   RELATED-ключ `hammer drill dust collector` (+60% rising).
 
+## Незакрите завдання: дозаповнення полів кандидатів `06_Keywords`
+
+Кандидати-ключі з Related (`KEY-REL-…`) пишуться зі статусом **NEW** і
+заповненими лише полями відкриття (`keyword`, `niche`, `niche_id`,
+`marketplace_category`, `country`, `top_position/value`, `notes`). Поля
+`result_count`, `trend_direction`, `usefulness`, `date_checked→CHECKED`
+**свідомо порожні** — вони наповнюються ПІЗНІШЕ, коли кандидат сам іде в
+перевірку тією ж гілкою Trends (метрики) / Shopping, що й початковий сід.
+Тобто потрібен окремий крок «взяти NEW-кандидатів з `06_Keywords` →
+прогнати через `Prepare 5 Countries` → Trends-метрики → оновити рядок,
+status → CHECKED». Це і є черга на перевірку; поки не побудовано.
+
 **Наступний крок:** прогнати гілку Shopping (протягнути `product_id` у групові рядки `06_Keywords`); записати підтверджені оголошення в `09_Ads`, агрегувати їх за `competitor_id` і оновити рекламний аналіз у `05_Competitors`.
 
 ---
