@@ -211,6 +211,18 @@ URL приймається тільки коли одночасно підтве
   назва з 2+ слів або перетин із токенами сід-ключа — однослівні
   абстракції на кшталт Art/Wall/Ceiling відкидаються). ID детерміновані
   (hash від тексту+країни), дедуплікація в межах прогону.
+  У гілку додано класифікацію ніш через AI Agent (`Niche Agent`,
+  temperature 0) із Google Sheets як інструментом: `Merge Findings`
+  (Queries+Topics) → `Niche Agent` → `Apply Niche & Emit Niches` (Code)
+  → Switch на 4 виходи. Агент читає `00_Niches` інструментом і співставляє
+  кандидата з наявною нішею (nail dust collector → Beauty / Nail Care
+  NCH-006, без дублів) або пропонує нову; код детерміновано присвоює новій
+  ніші наступний послідовний `NCH-00X` + `priority` і емітить її як
+  `record_type: NICHE` → `00_Niches`. Нішу отримують усі типи
+  (KEYWORD_CANDIDATE, DISCOVERY, BRAND_SIGNAL); `candidate_name_ua`
+  (укр. переклад) — лише DISCOVERY. `discovery_id` уніфіковано до
+  name-based (`DSC-{hash(нормалізованої назви)}`) в усіх джерелах, щоб та
+  сама знахідка з Trends і Meta зливалась в один рядок.
   Живий прогін 19.07.2026 дав чистий вихід: знахідки Thickness planer
   (Breakout US), Drill bit / Hammer drill / Drill Dust Collector (GB)
   і бренд-сигнали Bosch, Makita, Milwaukee Tool. Запис у вкладки
