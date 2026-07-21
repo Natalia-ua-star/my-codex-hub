@@ -302,14 +302,31 @@ status → CHECKED». Це і є черга на перевірку; поки н
   рекламу має лише `nail dust collector` (68 оголошень, 9 продавців, 28 дн) —
   дводжерельна знахідка (Trends +170% + жива Meta-реклама).
 
+Готово додатково (точна Meta-гілка, 21.07.2026):
+- **Classify Ads (точний)**: Metapi (розширений q=`drill dust collector`) →
+  `Classify Ads` фільтрує рекламу **саме товару** за **суцільною фразою**
+  «drill dust collector» (`hay.includes(PHRASE)`), + стоп-ніші
+  (nail/manicure/pedicure/beauty) + відсів Marketplace-перепродажу
+  (`landing` містить `facebook.com/marketplace`) + дедуплікація за `ad_id`.
+  Кожне оголошення → `09_Ads` (Append or Update за `ad_id`; `advertiser_url` =
+  `facebook.com/{page_id}`; `offer/price/currency` порожні — Meta не дає з
+  тексту; `impressions/reach` недоступні для комерційної реклами назавжди;
+  `ad_format`/`ad_score` — пізніше). Живий тест: 4 оголошення товару від
+  3 прямих конкурентів (BeauAlori, Flourtish, Emtphasis), усі INACTIVE у
+  запінених даних. Звіт `Build Ad Report` → `Send Ad Report` (кількість,
+  активні/зупинені, конкуренти, попередження якщо все зупинено).
+- **Meta-конкуренти НЕ дублюються в `05_Competitors`** окремим записом:
+  реклама вже в `09_Ads` з `product_id`/`keyword_id`, тож прямих
+  конкурентів-рекламодавців зведемо в `05_Competitors` на кроці скорингу
+  `07_Shortlist` (групування `09_Ads` за рекламодавцем).
+
 Незакрито (борги, окремі кроки):
 1. **Re-check NEW-кандидатів** `06_Keywords` через Trends-метрики (дозаповнити
    `result_count`/`trend_direction`/`usefulness`, status→CHECKED);
-2. **Meta «точний товар»** → запис `PRODUCT_AD` у `09_Ads` + META_ADS-сигнал
-   у `03_Market_Signals`;
-3. **Meta Spy** (топ за тривалістю 30+ днів) як окремий discovery-потік;
-4. **Фінальний скоринг** `07_Shortlist` (demand/creative/competition/margin/
-   supplier/logistics/risk → рішення + `next_action`).
+2. **Meta Spy** (топ за тривалістю 30+ днів) як окремий discovery-потік;
+3. **Фінальний скоринг** `07_Shortlist` (demand/creative/competition/margin/
+   supplier/logistics/risk → рішення + `next_action`; тут же зведення
+   Meta-конкурентів у `05_Competitors` з `09_Ads`).
 
 **Наступний крок:** записати підтверджені оголошення в `09_Ads`, агрегувати їх за `competitor_id` і оновити рекламний аналіз у `05_Competitors`.
 
