@@ -281,6 +281,10 @@ status → CHECKED». Це і є черга на перевірку; поки н
   `06_Keywords`; Market Signals → `03_Market_Signals`);
 - продавці: Split Sellers → `04_Suppliers` / `05_Competitors` (+ landed_cost,
   клікабельні URL через HYPERLINK);
+- звіти в Telegram: продукт, Trends, Related, Shopping (об'єднаний ринок +
+  продавці — `Build Shopping Report`). `trend_direction` формує вузол
+  `Analyze Google Trend` (метрики), а не `Prepare 5 Countries` — IF перед
+  Related і будь-які фільтри за трендом читають саме з `Analyze Google Trend`;
 - Meta через Metapi: пайплайн Create→Poll→Results працює, Classify Ads
   фільтрує «наш товар» проти суміжних ніш.
 
