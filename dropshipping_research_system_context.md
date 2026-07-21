@@ -288,14 +288,27 @@ status → CHECKED». Це і є черга на перевірку; поки н
 - Meta через Metapi: пайплайн Create→Poll→Results працює, Classify Ads
   фільтрує «наш товар» проти суміжних ніш.
 
+Готово додатково (21.07.2026):
+- **Enrich Discoveries with Ads** (розширена Meta-гілка): Metapi (q=`drill
+  dust collector`) → `Get Discoveries` → `Enrich` (Code) → `10_Discoveries`.
+  Знахідка × реклама зіставляється за **виразними словами назви як цілими
+  словами** (regex `\b`, не substring — інакше `bit`↔`orbit`, `dust`↔`stardust`);
+  беруться лише знахідки з ≥2 виразних (не загальних drill/dust/tool/bit)
+  слів, решта пропускається й **очищає** старі рекламні колонки (self-heal).
+  Оновлюються тільки рекламні поля (`raw_ads_count`, `relevant_ads_count`,
+  `unique_advertisers`, `longest_ad_days`, `advertisers`, `store_urls`,
+  `advertising_status`, `notes_ads`) — Trends-поля (`status`, `notes`,
+  `candidate_name`, `niche`, `confidence`) не чіпаються. Результат: реальну
+  рекламу має лише `nail dust collector` (68 оголошень, 9 продавців, 28 дн) —
+  дводжерельна знахідка (Trends +170% + жива Meta-реклама).
+
 Незакрито (борги, окремі кроки):
 1. **Re-check NEW-кандидатів** `06_Keywords` через Trends-метрики (дозаповнити
    `result_count`/`trend_direction`/`usefulness`, status→CHECKED);
 2. **Meta «точний товар»** → запис `PRODUCT_AD` у `09_Ads` + META_ADS-сигнал
    у `03_Market_Signals`;
 3. **Meta Spy** (топ за тривалістю 30+ днів) як окремий discovery-потік;
-4. **Enrich Discoveries with Ads** (цей розділ) — зшити знахідки з рекламою;
-5. **Фінальний скоринг** `07_Shortlist` (demand/creative/competition/margin/
+4. **Фінальний скоринг** `07_Shortlist` (demand/creative/competition/margin/
    supplier/logistics/risk → рішення + `next_action`).
 
 **Наступний крок:** записати підтверджені оголошення в `09_Ads`, агрегувати їх за `competitor_id` і оновити рекламний аналіз у `05_Competitors`.
