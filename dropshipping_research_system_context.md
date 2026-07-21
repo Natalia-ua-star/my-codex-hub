@@ -256,7 +256,45 @@ URL приймається тільки коли одночасно підтве
 прогнати через `Prepare 5 Countries` → Trends-метрики → оновити рядок,
 status → CHECKED». Це і є черга на перевірку; поки не побудовано.
 
-**Наступний крок:** прогнати гілку Shopping (протягнути `product_id` у групові рядки `06_Keywords`); записати підтверджені оголошення в `09_Ads`, агрегувати їх за `competitor_id` і оновити рекламний аналіз у `05_Competitors`.
+## Незакрите завдання: зшивання знахідок із рекламою (`Enrich Discoveries with Ads`)
+
+Колонки `10_Discoveries` `raw_ads_count`, `relevant_ads_count`,
+`unique_advertisers`, `longest_ad_days`, `advertisers`, `store_urls`
+порожні — вони чекають на докази реклами по знахідці. Зв'язок робиться
+за **нормалізованою назвою**: `discovery_id = DSC-{hash(normName(назви))}`,
+той самий хеш рахується з тексту/назви реклами. Окремий крок:
+вхід — знахідки (`10_Discoveries`) + реклама (Meta results / `09_Ads`);
+зіставлення по `normName(назви)`; вихід — оновлені рекламні колонки
+знахідки (Append or Update за `discovery_id`). Так знахідка стає
+дводжерельною («росте в Trends І рекламується в Meta»). `source_product_id`
+знахідки = `product_id` сіда, з якого її знайдено (у тесті порожній, у
+проді заповнюється). Будувати ПІСЛЯ стабільної Meta-гілки.
+
+## Статус (послідовність)
+
+Готово й перевірено на живих даних:
+- Trends (метрики по країнах, звіт);
+- Trends Related (queries/topics → кандидати, знахідки, бренди);
+- класифікація ніш (Niche Agent + Apply Niche, автon-реєстрація `00_Niches`);
+- уніфікований name-based `discovery_id`;
+- Shopping (нормалізація → `product_id` → `02_Products` з AI-карткою →
+  `06_Keywords`; Market Signals → `03_Market_Signals`);
+- продавці: Split Sellers → `04_Suppliers` / `05_Competitors` (+ landed_cost,
+  клікабельні URL через HYPERLINK);
+- Meta через Metapi: пайплайн Create→Poll→Results працює, Classify Ads
+  фільтрує «наш товар» проти суміжних ніш.
+
+Незакрито (борги, окремі кроки):
+1. **Re-check NEW-кандидатів** `06_Keywords` через Trends-метрики (дозаповнити
+   `result_count`/`trend_direction`/`usefulness`, status→CHECKED);
+2. **Meta «точний товар»** → запис `PRODUCT_AD` у `09_Ads` + META_ADS-сигнал
+   у `03_Market_Signals`;
+3. **Meta Spy** (топ за тривалістю 30+ днів) як окремий discovery-потік;
+4. **Enrich Discoveries with Ads** (цей розділ) — зшити знахідки з рекламою;
+5. **Фінальний скоринг** `07_Shortlist` (demand/creative/competition/margin/
+   supplier/logistics/risk → рішення + `next_action`).
+
+**Наступний крок:** записати підтверджені оголошення в `09_Ads`, агрегувати їх за `competitor_id` і оновити рекламний аналіз у `05_Competitors`.
 
 ---
 
