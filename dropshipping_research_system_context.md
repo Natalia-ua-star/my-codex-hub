@@ -468,6 +468,19 @@ status, notes
 ніші (`saturation_score`/`competition_score`), черга перевірки Meta Ads,
 фільтр брендових ключів серед кандидатів.
 
+### TAB 13 — `08_Semantic_Core` (додано 22.07.2026)
+Семантичне ядро: pain-first пошук ключів через DataForSEO, з частотністю,
+трендом, бренд-тегами й прапорцем прогалини. Вхідна воронка, що генерує ключі
+(`status = NEW`) для пайплайну перевірки. Порядок колонок:
+```
+keyword_id, niche_id, product_id, keyword, keyword_norm, search_volume, cpc,
+competition_index, trend_direction, is_brand, brand_name, is_diy, cluster,
+use_for, gap_score, pain_confirmed, source, country, status, created_at
+```
+`keyword_id = SEM-{hash(keyword_norm)}`. Модель по-країнна, усі значення
+динамічні. Append or Update за `keyword_id`. Деталі логіки (кластери, gap_score,
+PAIN, соцтренд) — у розділі «Методологія семантичного ядра» вище.
+
 ### Нотатки щодо схеми
 
 - У `03_Market_Signals` є дубльовані за змістом пари колонок: `keyword_used`/`keyword`
