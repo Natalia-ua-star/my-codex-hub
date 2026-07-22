@@ -481,6 +481,29 @@ use_for, gap_score, pain_confirmed, source, country, status, created_at
 динамічні. Append or Update за `keyword_id`. Деталі логіки (кластери, gap_score,
 PAIN, соцтренд) — у розділі «Методологія семантичного ядра» вище.
 
+**Побудовано й протестовано 22.07.2026** (пілот drill, US). Ланцюг воркфлоу з 4 нод:
+1. **Manual Trigger**
+2. **DataForSEO** (офіційна нода) → Resource `Google Ads` → Operation
+   `Get Live Google Keywords for Keywords`; Input Mode Manual, 5 сідів,
+   Location `United States`, Language `English`. Вихід — `tasks[0].result[]`
+   (133 ключі, $0.09).
+3. **Parse Semantic Core** (Code, Run Once for All Items) — збирає keyword-обʼєкти
+   рекурсивно (незалежно від обгортки), рахує 20 колонок: тренд із `monthly_searches`
+   (сер. 3 нових vs 3 старих → RISING/STABLE/FALLING), бренд/DIY-теги, `cluster`
+   (BRAND→DIY→PROBLEM→USE-CASE→ATTRIBUTE→CORE), `gap_score = volNorm×compOpen×100`
+   (0 для брендів/DIY/насичених), `pain_confirmed`, `keyword_id = SEM-{hash}`.
+   Пороги: VOL_REF=100, GAP_MIN_VOL=20, PAIN_MIN=20. Дедуп за `keyword_norm`.
+   NICHE_ID/PRODUCT_ID поки в CONFIG (тест); далі підтягнемо з сіда.
+4. **Google Sheets** Append or Update у `08_Semantic_Core`, match on `keyword_id`,
+   Map Automatically. Записано 131 рядок.
+
+Результат drill підтвердив попередній вердикт: топ-прогалини `dust drill`(gap 57),
+`drill machine dust collector`, `drilling machine with dust collection`; ядро
+`drill dust collector` gap 0 (competition 100, насичено); бренди gap 0.
+
+Далі: подача сідів із `06_Keywords` (замість ручного вводу) + прогін нейла;
+потім AI-enrichment (болі → рекламні кути) і соцтренд-гілки.
+
 ### Нотатки щодо схеми
 
 - У `03_Market_Signals` є дубльовані за змістом пари колонок: `keyword_used`/`keyword`
