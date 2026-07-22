@@ -594,3 +594,58 @@ get rid of / without / fix / problem`). Прапорець **`pain_confirmed = T
 - **зараз (дропшипінг):** болі → рекламні кути + вибір/валідація товару + discovery;
 - **потім:** структура сайту (кластер = колекція), SEO-сторінки, теми контенту.
 Тому $50 на DataForSEO — це інвестиція в актив, а не разова витрата.
+
+### Прогалини (gap) — головна мета пошуку, і потік «core → пайплайн»
+
+Мета семантичного ядра для нас — **знаходити прогалини**: де попит є, а
+пропозиція/конкуренція слабка, тобто те, що люди потребують, а ми можемо закрити.
+
+Дві форми прогалини:
+1. **Keyword-gap** — конкретний запит із попитом і слабкою конкуренцією (швидкий
+   вхід сторінкою/рекламою).
+2. **Need/product-gap** — біль, який люди пишуть, а доброго товару під нього нема →
+   **ідея нового товару** (глибше золото дропшипінгу; перетинається з кластером PAIN).
+
+**`gap_score` / `opportunity`** у `08_Semantic_Core` високий, коли одночасно:
+- `search_volume ≥ поріг` (попит підтверджений), **І**
+- `competition_index` низький (мало продавців/рекламодавців), **І**
+- НЕ бренд (`concepts.type != BRAND/OTHER_BRANDS`), **І**
+- НЕ DIY (немає `diy / homemade / how to make / build`).
+
+Чесний нюанс: низька competition = **сигнал перевірити, не гарантія** (може бути
+незайнята ніша АБО ніша, де ніхто не заробляє). Тому прогалина не є фінальним
+рішенням — вона йде далі в пайплайн на перевірку.
+
+**Потік замикається** (ядро = вхідна воронка, стара система = машина перевірки):
+```
+08_Semantic_Core (болі + прогалини, gap_score, status=NEW)
+      ↓  ключі зі status = NEW
+Trends (попит) → 05_Competitors → 09_Ads/Meta → 04_Suppliers → 07_Shortlist
+```
+Тобто ми не переробляємо стару систему, а **добудовуємо їй голову**, яка сама
+знаходить, що перевіряти.
+
+### Реальний ендпоінт і фінальні колонки `08_Semantic_Core`
+
+Пілотний прогін (22.07.2026, seed «drill dust collector», US) робили через
+`keywords_data / google_ads / keywords_for_keywords / live` — 133 ключі, $0.09.
+Цей ендпоінт дає `search_volume`, `cpc`, `competition`/`competition_index`,
+12 міс. історії (`monthly_searches` → тренд) і **`keyword_annotations.concepts`**
+(автотеги BRAND / OTHER_BRANDS / Tool / Non-Brands — бренди відсіюються безкоштовно).
+Обмеження: цей ендпоінт **не дає `search_intent`** — за потреби готового наміру
+беремо Labs `keyword_ideas`. Синоніми Google групує в одну частотність
+(«drill dust collector» і «drilling dust catcher» = ті самі 480) — **не сумуємо**.
+
+Колонки:
+```
+keyword_id, niche_id, product_id, keyword, keyword_norm, search_volume,
+cpc, competition_index, trend_direction, is_brand, brand_name, is_diy,
+cluster, use_for, gap_score, pain_confirmed, source, country, status, created_at
+```
+- `keyword_id = SEM-{hash(keyword_norm)}` (детермінований, без дублів між прогонами).
+- `trend_direction` — RISING / STABLE / FALLING з порівняння середніх останніх 3 vs
+  попередніх 3 місяців `monthly_searches`.
+- `cluster` — CORE / ATTRIBUTE / USE-CASE / BRAND / DIY / PROBLEM (правила + concepts).
+- `use_for` — DISCOVERY / ADS / SEO (похідне від cluster).
+- `status` — NEW (підхоплюється пайплайном) / USED / IGNORED.
+Модель — по-країнна (як `06_Keywords`); усі ID та значення завжди динамічні.
