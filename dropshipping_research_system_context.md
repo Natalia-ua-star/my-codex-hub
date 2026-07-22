@@ -326,6 +326,16 @@ status → CHECKED». Це і є черга на перевірку; поки н
   конкурентів-рекламодавців зведемо в `05_Competitors` на кроці скорингу
   `07_Shortlist` (групування `09_Ads` за рекламодавцем).
 
+ПОВНИЙ ЧИСТИЙ ТЕСТ (22.07.2026, сід `drill dust collector`): пройдено
+наскрізь на живих даних — Trends (метрики + IF пропускає SPIKES_ONLY) →
+Related → Niche Agent (динамічні ніші) → Switch у 4 таби → Shopping
+(товар `PRD-1784709475726` + AI-картка + `product_id` протягнуто в
+`06_Keywords` через Remove Duplicates + Sheets) → Market Signals →
+Split Sellers (`04_Suppliers`/`05_Competitors`) → Meta точна (4 оголошення
+в `09_Ads`) → Meta розширена (Enrich оновив `10_Discoveries`:
+nail dust collector 81 оголошення/9 рекламодавців/30 дн, name-based
+`DSC-1G6HE0Q` зв'язав Trends+Meta). Уся дослідницька частина валідована.
+
 Незакрито (борги, окремі кроки):
 1. **Re-check NEW-кандидатів** `06_Keywords` через Trends-метрики (дозаповнити
    `result_count`/`trend_direction`/`usefulness`, status→CHECKED);
