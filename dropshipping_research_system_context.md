@@ -667,11 +667,18 @@ cluster, use_for, gap_score, pain_confirmed, source, country, status, created_at
 | **TikTok** | віральність, чи «злетів» товар | скрапер (Apify / TikTok Creative Center) | 🆕 нова інтеграція, є витрати |
 | **Google Trends — YouTube property** | інтерес у YouTube-пошуку | наявний Trends-движок (`gprop=youtube` — параметр уточнити при збірці) | 🟢 легко |
 | **Pinterest Trends** | візуальні/проблемні товари, сезонність | Pinterest Trends / скрапер | 🆕 треба доступ |
-| **Meta Ads Library** | реклама у FB/IG | Metapi | ✅ уже є |
+| **Instagram — органіка** | віральні Reels/пости, хештег-обсяг | скрапер (Apify) | 🆕 нова інтеграція |
+| **Facebook — органіка** | віральні пости/групи, згадки | скрапер (Apify) | 🆕 нова інтеграція |
+| **Meta Ads Library** | **реклама** у FB/IG (платний сигнал) | Metapi | ✅ уже є |
+
+Важливо не плутати: **Meta Ads Library = реклама FB/IG** (хто платить за покази) —
+це вже маємо. **Instagram/Facebook органіка = віральність контенту** (Reels-перегляди,
+хештеги, пости) — це окремий, новий сигнал зі скрапером.
 
 Зберігання: `03_Market_Signals`, `signal_type = TIKTOK_TREND / YOUTUBE_TREND /
-PINTEREST_TREND` (один рядок = ключ × платформа × країна). У скорингу — вимір
-**`social_score`** (розширює нинішній creative_score, що зараз тримається лише на Meta).
+PINTEREST_TREND / INSTAGRAM_TREND / FACEBOOK_TREND` (один рядок = ключ × платформа ×
+країна). У скорингу — вимір **`social_score`** (розширює нинішній creative_score, що
+зараз тримається лише на Meta Ads).
 
 Потік із соцсигналом:
 ```
@@ -679,7 +686,8 @@ PINTEREST_TREND` (один рядок = ключ × платформа × кра
       → 05_Competitors → 04_Suppliers → 07_Shortlist(+social_score)
 ```
 
-Чесний нюанс: **TikTok і Pinterest не мають безкоштовного офіційного API** — це
-окремі скрапер-інтеграції (як Metapi для Meta), з витратами. YouTube-через-Trends —
-дешевий/готовий. Тому порядок збірки: спершу YouTube(Trends), далі TikTok, потім
-Pinterest — щоб кожну гілку відпрацювати окремо.
+Чесний нюанс: **TikTok, Instagram, Facebook (органіка) і Pinterest не мають
+безкоштовного офіційного API** — це окремі скрапер-інтеграції (як Metapi для Meta),
+з витратами. YouTube-через-Trends — дешевий/готовий. Тому порядок збірки: спершу
+YouTube(Trends), далі TikTok, потім Instagram/Facebook органіка, потім Pinterest —
+щоб кожну гілку відпрацювати окремо.
