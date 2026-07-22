@@ -529,8 +529,27 @@ PAIN, соцтренд) — у розділі «Методологія сема�
 | AliExpress / Amazon Movers | «гарячі» товари | 🟡 |
 | Ручний | ідеї | ✅ |
 
-Перша гілка: **DataForSEO Merchant** — bestsellers по категоріях → назви товарів як
-сіди → нормалізація до generic-типу товару → `01_Inbox`.
+Перша гілка: **DataForSEO Merchant** — `Google Shopping → Get Products Advanced` за
+широкою категорією → назви товарів (брендові, напр. «OTOTO Magic Mushroom Funnel»)
+→ **AI-нормалізація** до generic-типу («mushroom funnel») → бункер сідів.
+
+⚠️ `01_Inbox` зайнятий Telegram-ботом — **не чіпаємо**. Бункер конвеєра — нова
+вкладка **`12_Seed_Inbox`** (спільна для Merchant і Trending Now та майбутніх джерел).
+
+Вибір інструмента для Google Shopping: і DataForSEO Merchant, і SerpApi тягнуть ті
+самі товари. Розподіл, щоб не дублювати: **Merchant** — харвест сідів (дешевше на
+обсязі); **SerpApi** — бережемо під **Trending Now** (його унікальна фішка, trend-up).
+
+### TAB 14 — `12_Seed_Inbox` (додано 22.07.2026)
+Бункер сирих сідів із конвеєра пошуку (Merchant, Trending Now, далі TikTok/Meta/
+YouTube). Колонки спільні для всіх джерел:
+```
+inbox_id, source, source_detail, raw_title, generic_seed, price, currency, rating,
+rating_count, traffic, product_url, source_id, country, status, discovered_at
+```
+`inbox_id = INB-{hash}`. Merchant заповнює price/rating/rating_count/url; Trending
+Now — traffic; спільні — raw_title, generic_seed (AI), source, country, status(NEW).
+Потік: `12_Seed_Inbox → тріаж → 06_Keywords(NEW) → 08_Semantic_Core`.
 
 ### Нотатки щодо схеми
 
