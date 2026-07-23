@@ -551,6 +551,57 @@ rating_count, traffic, product_url, source_id, country, status, discovered_at
 Now — traffic; спільні — raw_title, generic_seed (AI), source, country, status(NEW).
 Потік: `12_Seed_Inbox → тріаж → 06_Keywords(NEW) → 08_Semantic_Core`.
 
+### Стан discovery-конвеєра (23.07.2026) + уніфікований план
+
+**Побудовані джерела товарів (усі пишуть у `12_Seed_Inbox`):**
+- **Merchant Google Shopping** (DataForSEO `Get Products Advanced`) — categoryʼю → товари.
+  Parse Merchant Products: бренд-блоклист, фікс рейтингу, AI-нормалізація назв → `generic_seed`.
+- **Trending Now** (SerpApi `google_trends_trending_now`) — товарна гілка: Parse → AI
+  (is_product) → Merge (не фільтрує, позначає NEW/NOT_PRODUCT) → Filter(NEW) → inbox.
+  Низький врожай (новинно-важке) — очікувано.
+- **TikTok** (ScrapeCreators `Search by hashtag`) — вірусні відео: Parse TikTok
+  (desc, `play_count`=перегляди) → AI Extract TikTok (is_product+generic_seed+category+fit)
+  → Merge (групує по товару, сумує перегляди) → Filter(NEW) → inbox. Дає найсильніший вірал.
+
+**Контент-гілка (окремо від товарів):** Trending Now → Build Digest Input → OpenAI
+(дайджест по напрямках: політика/спорт/культура/фінанси/здоров'я/тех + як використати)
+→ Extract Digest (markdown→Telegram HTML, нарізка 3800) → Telegram. Заголовок
+«📊 GOOGLE TRENDS NOW» додається кодом.
+
+**Ціни/маржа (валідація, код без AI):** Merchant (keyword=товар) → Parse Prices & Margin —
+розділяє офери на постачальників (aliexpress/temu/dhgate/banggood/…) vs роздріб,
+рахує `retail_price`(медіана), `supplier_cost`(min або 10-й перцентиль-оцінка),
+`margin_ratio`, `margin_verdict`. Якщо постачальника у видачі нема — маржа позначається
+«(ОЦІНКА)». Точна собівартість — пізніше через AliExpress-скрапер (Apify/RapidAPI).
+
+**Уніфікований план конвеєра (рефактор — один AI замість по-джерельних):**
+```
+Джерело1 → Parse ┐
+Джерело2 → Parse ┤
+CreativeCtr → Parse ├→ COMBINE → Code-сито(ДО AI: дедуп + топ-N за engagement)
+Instagram → Parse ┤              → AI(товар+категорія+fit)
+Facebook → Parse ┘              → Code-фільтр(ПІСЛЯ AI: HARD_EXCLUDE + категорії + дедуп/сума)
+                                → 12_Seed_Inbox
+```
+- Кожне джерело → свій Parse, що зводить до спільної форми
+  (`source, source_detail, raw_title, traffic, product_url, region`).
+- Код працює ДВІЧІ: до AI (обрізати обсяг → економія), після AI (точний фільтр).
+- **Фільтр категорій:** AI повертає `category` (gadget/tool/home/kitchen/pet/beauty_device/
+  apparel/topical_cosmetic/supplement/other); Merge має `EXCLUDE=[topical_cosmetic,supplement]`
+  + код-словник `HARD_EXCLUDE` (cream/serum/lotion/supplement/vitamin/…) як страхувальна
+  сітка (AI ~90-95%, не 100%). beauty_device (LED-маска) лишаємо, креми/добавки — геть.
+- **Схема «топ спочатку»:** в inbox пишемо ВСЕ (банк), а дорогу перевірку
+  (Merchant+DataForSEO) робимо лише на **топ-N за переглядами**; решта чекають у черзі.
+
+**Джерела вірал-скрапінгу:** обрано **ScrapeCreators** (один API: TikTok, IG, FB, FB Ads
+Library, Pinterest, Reddit, Twitter/Threads/Snapchat; 100 free кредитів) — замінює
+Apify+Metapi. Meta-гілка (пізніше) = FB Ads Library, **лише ТОП (довгограючі оголошення)**.
+
+**TikTok discovery-хештеги (для `Search by hashtag`):**
+`tiktokmademebuyit, amazonfinds, tiktokshopfinds, amazonmusthaves, cleantok,
+kitchengadgets, gadgetsoftiktok, tiktokfinds, homefinds, petsoftiktok,
+caraccessories, organizationtiktok, babymusthaves, coolgadgets, viralproducts`.
+
 ### Нотатки щодо схеми
 
 - У `03_Market_Signals` є дубльовані за змістом пари колонок: `keyword_used`/`keyword`
