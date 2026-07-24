@@ -900,16 +900,33 @@ Manual Trigger → Read Inbox (12_Seed_Inbox) → Filter RISING (NEW + momentum 
 Перший прогін: 4 ТЕСТ (fishing lure, plant pots — обидва 🔥росте; jump starter, litter box — ↓спадає),
 2 ПОДИВИТИСЬ (mini chainsaw, fishing rod combo).
 
-### 🔜 НАСТУПНЕ: вердикт v2 — після Meta Ads (найсильніший сигнал)
-Зараз вердикт на 3 сигналах (соц TikTok + пошук Google + болі). Додати 4-й, найкомерційніший:
-**чи конкуренти прибутково крутять рекламу зараз.** Реклама 30+ днів = товар точно прибутковий
-(ніхто не ллє в збиток місяць) → найсильніше «ТЕСТ». Нема реклами = двозначно (незаймана АБО мертва).
+### ✅ ВЕРДИКТ v2 — 4-сигнальний (з Meta Ads) — ГОТОВО (24.07.2026)
+Додано 4-й, найкомерційніший сигнал: **чи конкуренти прибутково крутять рекламу зараз.**
+Реклама 30+ днів = ринок точно прибутковий (ніхто не ллє в збиток місяць).
+
+**Гілка Meta (у Машині 2, паралельно з семантикою):**
 ```
-Filter STRONG → Meta Ads check (по товару) → Idea Verdict (з ad_score)
+Filter STRONG ┬→ DataForSEO Keywords Core → Parse Semantic Core → Merge(1)
+              └→ Search Ads (ScrapeCreators FB Ad Library) → Parse Meta Ads → Merge(2)
+Merge → Idea Verdict v2 → 13_Verdicts + Build Verdict Report → Telegram
 ```
-**Джерело:** ScrapeCreators **FB Ads Library** (НЕ Metapi — той ключ витік, перегенерувати).
-Парс: к-сть релевантних оголошень, `ads_30_plus_days`, `longest_ad_days`. Влити в inputs вердикту.
-Це окрема гілка на наступну сесію.
+- **`Search Ads`** (ScrapeCreators, Resource `Facebook Ad Library`, Op `Search Ads`): Query=`{{ $json.generic_seed }}`,
+  Run Once for Each Item, Limit 50. НЕ Metapi (той ключ витік).
+- **`Parse Meta Ads`** (Code): пара `$("Filter STRONG")`+`$input` по індексу; поля `start_date`/`end_date`/
+  `is_active`/`collation_count`; рахує `ad_count`, `ads_30plus`, `longest_days`, `avg_days`, `variations`,
+  `ad_verdict` (🟢 PROVEN ≥1 реклама 30+дн / 🟡 TESTING / ⚪ NO ADS).
+- **`Merge`** тримає `Idea Verdict`, поки обидві гілки (ядро+реклама) не готові.
+- **`Idea Verdict` v2**: читає `$("Parse Semantic Core")` + `$("Filter RISING")` (product_id↔generic_seed)
+  + `$("Parse Meta Ads")` (generic_seed↔ad-дані). Вердикт: coreMax<30→ПРОПУСТИТИ;
+  proven+кут→ТЕСТ; proven(без кута)→ТЕСТ (диференціація); кут(без реклами)→ПОДИВИТИСЬ; інакше ПОДИВИТИСЬ.
+  Додано колонки `реклама`, `реклам_30дн`, `найдовше_дн`.
+
+**Перший прогін v2:** усі 6 → 🟢 PROVEN (конкуренти рекламують роками — fishing lure 1015дн,
+mini chainsaw 930дн). Тобто всі 6 ринків підтверджені грошима → усі ТЕСТ; ранг по тренду+довговічності
+реклами (fishing lure/plant pots попереду — тренд росте + реклама роками). Ad-сигнал ПІДВИЩив
+2 колишні «ПОДИВИТИСЬ» (mini chainsaw, fishing rod) — «тісно, БО прибутково».
+
+**Система тепер 4-сигнальна:** соц (TikTok) × пошук (Google 5 країн) × болі (ядро) × реклама (FB Ads).
 
 ---
 
