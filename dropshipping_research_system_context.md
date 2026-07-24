@@ -825,3 +825,60 @@ PINTEREST_TREND / INSTAGRAM_TREND / FACEBOOK_TREND` (один рядок = кл�
 з витратами. YouTube-через-Trends — дешевий/готовий. Тому порядок збірки: спершу
 YouTube(Trends), далі TikTok, потім Instagram/Facebook органіка, потім Pinterest —
 щоб кожну гілку відпрацювати окремо.
+
+---
+
+## РЕЄСТР НАЗВ НОД (n8n) — джерело правди
+
+**Правило:** назви нод у коді (`$("Ім'я")`) мають ТОЧНО збігатися з цим реєстром.
+Якщо в n8n перейменували ноду — оновити і тут, і в усіх посиланнях у коді.
+
+### Конвеєр TikTok Shop (discovery за нішею → товари + хештеги)
+
+Потік:
+```
+[ScrapeCreators TikTok Shop Search]  → Parse TikTok Shop
+Parse TikTok Shop → [ScrapeCreators Product Details]  (URL динамічний: {{ $json.product_url }})
+[Product Details] → Parse Enrichment
+Parse Enrichment → AI Extract → Build Seed Inbox → Filter (NEW)
+Filter (NEW) ├─→ Google Sheets: 12_Seed_Inbox      (Append or Update, match inbox_id)
+             ├─→ Explode Hashtags → Google Sheets: Hashtag_Stats  (Append or Update, match stat_id)
+             └─→ Build TikTok Report → Telegram
+```
+
+| Назва ноди | Тип | Роль |
+|---|---|---|
+| `Parse TikTok Shop` | Code (All Items) | з Shop Search → рядки товарів, `traffic=sold_count`, будує `product_url`, MIN_SOLD, сорт по продажах |
+| `Product Details` | ScrapeCreators HTTP | по `product_url` → `product_info` + `related_videos`; **Run Once for Each Item**, URL = `{{ $json.product_url }}` |
+| `Parse Enrichment` | Code (All Items) | пара `$("Parse TikTok Shop")` + `$input` по індексу; органіка з `related_videos`, CUTOFF=2026-01-01, `money_hashtags` |
+| `AI Extract` | OpenAI Message (JSON, Each Item) | брудний `raw_title` → `generic_seed`+`niche`+`confident` (без is_product — у Shop усе товари) |
+| `Build Seed Inbox` | Code (All Items) | merge `$("Parse Enrichment")`+`$input`(AI) по індексу → 18 полів inbox + бонус; `inbox_id=SIG-hash(source_id)`, статус NEW/REVIEW/REJECTED_CATEGORY |
+| `Filter (NEW)` | Filter | `{{ $json.status }}` == `NEW` |
+| `Explode Hashtags` | Code (All Items) | `source_detail` → 1 хештег = 1 рядок під `Hashtag_Stats`, `stat_id=HSH-hash(tag+product)`, `product_id`=source_id |
+| `Build TikTok Report` | Code (All Items) | звіт по товарах → `text` (HTML, нарізка 3800) |
+
+**Ключові правила з'єднань (щоб пари по індексу не з'їхали):**
+- `Build Seed Inbox` бере стрілку **з `AI Extract`** (не з Parse Enrichment) — інакше `$input`
+  не той, `generic_seed` порожній, статус зривається в REVIEW.
+- `AI Extract` і `Product Details` — режим **Run Once for Each Item** (не Execute Once).
+- Пари складаються **в коді по індексу** — фізична Merge-нода НЕ потрібна, ланцюг «в рядок».
+
+### Оновлена схема `12_Seed_Inbox` (18 колонок; +3 для TikTok)
+```
+inbox_id	source	source_detail	raw_title	generic_seed	price	currency	rating	rating_count	traffic	product_url	source_id	country	status	discovered_at	niche	organic_views	organic_views_all
+```
+`niche / organic_views / organic_views_all` заповнює лише TikTok Shop; для інших джерел порожні.
+
+### `Hashtag_Stats` (12 колонок; +product_id) — банк грошових хештегів
+```
+stat_id	source	hashtag	niche	videos_total	products_found	product_rate	avg_views	total_views	product_id	top_products	checked_at
+```
+З TikTok Shop: `videos_total`=згадки хештега у related_videos, `products_found`=1, `total_views`=organic_views товару,
+`product_id`=source_id (склейка з інбоксом), `top_products`=generic_seed. `product_rate`/`avg_views` порожні —
+заповняться зворотною гілкою (скан хештега → скільки відео товарні).
+
+### Робочі домовленості (формат відповідей)
+- **Заголовки колонок — завжди через Tab** (одразу вставляються по колонках у Sheets).
+- **Завжди повний код**, не сніпети.
+- Ключі API — лише в n8n Credentials, ніколи в чат.
+- Метод створення шапки в локалі користувача: `=SPLIT("a,b,c";",")` (роздільник аргументів `;`).
