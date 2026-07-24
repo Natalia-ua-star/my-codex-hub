@@ -835,12 +835,12 @@ YouTube(Trends), далі TikTok, потім Instagram/Facebook органіка
 
 ### Конвеєр TikTok Shop (discovery за нішею → товари + хештеги)
 
-Потік:
+Потік (з моніторингом — Рівень 2):
 ```
 [ScrapeCreators TikTok Shop Search]  → Parse TikTok Shop
 Parse TikTok Shop → [ScrapeCreators Product Details]  (URL динамічний: {{ $json.product_url }})
 [Product Details] → Parse Enrichment
-Parse Enrichment → AI Extract → Build Seed Inbox → Filter (NEW)
+Parse Enrichment → AI Extract → Build Seed Inbox → Read Inbox → Merge History → Filter (NEW)
 Filter (NEW) ├─→ Google Sheets: 12_Seed_Inbox      (Append or Update, match inbox_id)
              ├─→ Explode Hashtags → Google Sheets: Hashtag_Stats  (Append or Update, match stat_id)
              └─→ Build TikTok Report → Telegram
@@ -848,14 +848,24 @@ Filter (NEW) ├─→ Google Sheets: 12_Seed_Inbox      (Append or Update, matc
 
 | Назва ноди | Тип | Роль |
 |---|---|---|
-| `Parse TikTok Shop` | Code (All Items) | з Shop Search → рядки товарів, `traffic=sold_count`, будує `product_url`, MIN_SOLD, сорт по продажах |
+| `Parse TikTok Shop` | Code (All Items) | з Shop Search → рядки товарів, `traffic=sold_count`, `product_url`=seo_url.canonical_url, `video_url` з video/author, MIN_SOLD, `TOP_N` (сорт по продажах) |
 | `Product Details` | ScrapeCreators HTTP | по `product_url` → `product_info` + `related_videos`; **Run Once for Each Item**, URL = `{{ $json.product_url }}` |
-| `Parse Enrichment` | Code (All Items) | пара `$("Parse TikTok Shop")` + `$input` по індексу; органіка з `related_videos`, CUTOFF=2026-01-01, `money_hashtags` |
+| `Parse Enrichment` | Code (All Items) | пара `$("Parse TikTok Shop")` + `$input` по індексу; органіка з `related_videos`, CUTOFF=2026-01-01, `videos_since_2026`, `money_hashtags`, `video_url` (топове related) |
 | `AI Extract` | OpenAI Message (JSON, Each Item) | брудний `raw_title` → `generic_seed`+`niche`+`confident` (без is_product — у Shop усе товари) |
-| `Build Seed Inbox` | Code (All Items) | merge `$("Parse Enrichment")`+`$input`(AI) по індексу → 18 полів inbox + бонус; `inbox_id=SIG-hash(source_id)`, статус NEW/REVIEW/REJECTED_CATEGORY |
+| `Build Seed Inbox` | Code (All Items) | merge `$("Parse Enrichment")`+`$input`(AI) по індексу → рядки inbox; `inbox_id=SIG-hash(source_id)`, статус; **дедуп по generic_seed** (`seller_count`,`total_sold`); **`momentum` код-вердикт** |
+| `Read Inbox` | Google Sheets (Get Rows) | читає поточний `12_Seed_Inbox` для порівняння з новими даними |
+| `Merge History` | Code (All Items) | `$("Build Seed Inbox")` + `$input`(Read Inbox) по `inbox_id`: зберігає `discovered_at` (first-seen), рахує `organic_prev`/`trend`/`momentum_prev`/`check_count`/`checked_at` |
 | `Filter (NEW)` | Filter | `{{ $json.status }}` == `NEW` |
 | `Explode Hashtags` | Code (All Items) | `source_detail` → 1 хештег = 1 рядок під `Hashtag_Stats`, `stat_id=HSH-hash(tag+product)`, `product_id`=source_id |
 | `Build TikTok Report` | Code (All Items) | звіт по товарах → `text` (HTML, 3800); авто-вердикт моментуму + research + постачальники |
+
+**Рівень 2 моніторинг (пам'ять між прогонами):** `Read Inbox`→`Merge History` перед Filter.
+Детермінований `inbox_id` + Google Sheets `Append or Update` = той самий товар **оновлюється
+на місці** (не дублюється). `Merge History` порівнює нове зі старим по `inbox_id`:
+`discovered_at` заморожується (перша поява), `trend` = ↑UP/↓DOWN/→FLAT/🆕NEW за рухом
+`organic_views`, `momentum_prev` показує зміну вердикту (напр. ⚡SPIKE→🔥RISING). Автозапуск —
+Schedule Trigger. **Пастка Sheets:** значення НЕ починати з `=` (інакше формула `#NAME?`) —
+тому `→ FLAT`, не `= FLAT`.
 
 **Звіт Telegram — структура на товар:** назва/ніша, ціна/рейтинг, продано, органіка
 (свіжа 2026 / вся), **авто-вердикт `momentum()`**, money_hashtags, 🔒US-лінки(VPN),
@@ -882,11 +892,17 @@ Enrichment` з топового свіжого `related_videos` (поле `url`,
 - `AI Extract` і `Product Details` — режим **Run Once for Each Item** (не Execute Once).
 - Пари складаються **в коді по індексу** — фізична Merge-нода НЕ потрібна, ланцюг «в рядок».
 
-### Оновлена схема `12_Seed_Inbox` (18 колонок; +3 для TikTok)
+### Схема `12_Seed_Inbox` (28 колонок — з моніторингом Рівня 2)
 ```
-inbox_id	source	source_detail	raw_title	generic_seed	price	currency	rating	rating_count	traffic	product_url	source_id	country	status	discovered_at	niche	organic_views	organic_views_all
+inbox_id	source	source_detail	raw_title	generic_seed	price	currency	rating	rating_count	traffic	product_url	source_id	country	status	discovered_at	niche	organic_views	organic_views_all	videos_since_2026	video_url	momentum	seller_count	total_sold	organic_prev	trend	momentum_prev	checked_at	check_count
 ```
-`niche / organic_views / organic_views_all` заповнює лише TikTok Shop; для інших джерел порожні.
+Google Sheets node мапить **за назвою** колонки, не за позицією — фізичний порядок у аркуші
+може відрізнятись. Заповнюється лише TikTok Shop; для інших джерел частина порожня.
+- `momentum` — код-вердикт (🔥 RISING / ⚠️ COOLING / 💀 SATURATED / ⚡ SPIKE / ❔ NO_DATA).
+- `seller_count` / `total_sold` — з дедупу по `generic_seed` (конкуренція + розмір ринку).
+- `organic_prev` / `trend` / `momentum_prev` / `check_count` / `checked_at` — моніторинг руху.
+- **Використання:** фільтр `status=NEW AND momentum=🔥 RISING` → черга в Машину 2
+  (DataForSEO → семантика → маржа → тест). RISING = «варто перевірити», не «точно бери».
 
 ### `Hashtag_Stats` (12 колонок; +product_id) — банк грошових хештегів
 ```
