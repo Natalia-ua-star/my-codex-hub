@@ -957,8 +957,23 @@ Google Sheets node мапить **за назвою** колонки, не за 
 stat_id	source	hashtag	niche	videos_total	products_found	product_rate	avg_views	total_views	product_id	top_products	checked_at
 ```
 З TikTok Shop: `videos_total`=згадки хештега у related_videos, `products_found`=1, `total_views`=organic_views товару,
-`product_id`=source_id (склейка з інбоксом), `top_products`=generic_seed. `product_rate`/`avg_views` порожні —
-заповняться зворотною гілкою (скан хештега → скільки відео товарні).
+`product_id`=source_id (склейка з інбоксом), `top_products`=generic_seed.
+- **`avg_views`** = `organic_views / mentions` (рахується в `Explode Hashtags`).
+- **`product_rate`** — порожнє, заповниться зворотною гілкою.
+- STOP-фільтр хештегів (у `Parse Enrichment`): regex сміття + відсів тегів коротших за 3 літери (#de/#la/#el).
+
+### 🔜 ВІДКЛАДЕНО: зворотна гілка (хештег → нові товари) — 24.07.2026
+Замикає цикл «вчимо хештеги → шукаємо нові товари по них». Потік:
+```
+Hashtag_Stats (топ за avg_views) → TikTok Hashtag Search (1 кредит/хештег)
+   → рахуємо product_rate = відео з товаром / усі відео
+   → товари → Product Details → дедуп проти inbox → нові сіди
+   → оновлюємо product_rate у Hashtag_Stats
+```
+**Що потрібно перед побудовою:** перевірити, чи ScrapeCreators TikTok Hashtag Search віддає
+**product/shop-anchor** у кожному `aweme_list[]` (без цього товари з хештег-відео не витягти —
+гілка міряла б лише хайп хештега). Тест = 1 кредит: прогнати 1 хештег, глянути `aweme_list[0]`.
+**Причина відкладення:** економія безкоштовних кредитів ScrapeCreators; будувати на платному плані.
 
 ### Робочі домовленості (формат відповідей)
 - **Заголовки колонок — завжди через Tab** (одразу вставляються по колонках у Sheets).
