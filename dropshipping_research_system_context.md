@@ -855,7 +855,16 @@ Filter (NEW) ├─→ Google Sheets: 12_Seed_Inbox      (Append or Update, matc
 | `Build Seed Inbox` | Code (All Items) | merge `$("Parse Enrichment")`+`$input`(AI) по індексу → 18 полів inbox + бонус; `inbox_id=SIG-hash(source_id)`, статус NEW/REVIEW/REJECTED_CATEGORY |
 | `Filter (NEW)` | Filter | `{{ $json.status }}` == `NEW` |
 | `Explode Hashtags` | Code (All Items) | `source_detail` → 1 хештег = 1 рядок під `Hashtag_Stats`, `stat_id=HSH-hash(tag+product)`, `product_id`=source_id |
-| `Build TikTok Report` | Code (All Items) | звіт по товарах → `text` (HTML, нарізка 3800) |
+| `Build TikTok Report` | Code (All Items) | звіт по товарах → `text` (HTML, нарізка 3800); лінк = 🔎 TikTok-пошук за `generic_seed` |
+
+**Гео-обмеження TikTok Shop US (важливо):** прямі лінки `shop/pdp/...` (product_url) і
+US-відео (`related_videos[].url`) **гео-замкнені на США** — з України віддають
+«Product ID is invalid» / «Відео недоступне». Тому в Telegram-звіті лінк — це
+**region-neutral пошук** `https://www.tiktok.com/search?q={generic_seed}` (відкривається
+всюди, показує доступні відео товару). `product_url`/`video_url` все одно зберігаються
+в `12_Seed_Inbox` (довідка / перегляд під VPN). `video_url` тягнеться в `Parse
+Enrichment` з топового свіжого `related_videos` (поле `url`, або будується з
+`author_id`+`item_id`).
 
 **Ключові правила з'єднань (щоб пари по індексу не з'їхали):**
 - `Build Seed Inbox` бере стрілку **з `AI Extract`** (не з Parse Enrichment) — інакше `$input`
