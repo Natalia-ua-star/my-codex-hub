@@ -894,6 +894,23 @@ Manual Trigger → Read Inbox (12_Seed_Inbox) → Filter RISING (NEW + momentum 
 **Використання `08_Semantic_Core`:** фільтр `pain_confirmed=TRUE` → рекламні хуки; `gap_score`↑ →
 прогалини (попит+низька конкуренція); `cluster=PROBLEM/COMPARISON` → теми креативів.
 
+**Idea Verdict (капстоун Машини 2):** групує ядро по `product_id`, дає 1 картку рішення на товар —
+`вердикт` (ТЕСТ/ПОДИВИТИСЬ/ПРОПУСТИТИ) + причина + попит + тренд + конкуренція + прогалини + болі.
+Пише в `13_Verdicts` (match `verdict_id`=VRD-{product_id}) + Telegram (`Build Verdict Report`).
+Перший прогін: 4 ТЕСТ (fishing lure, plant pots — обидва 🔥росте; jump starter, litter box — ↓спадає),
+2 ПОДИВИТИСЬ (mini chainsaw, fishing rod combo).
+
+### 🔜 НАСТУПНЕ: вердикт v2 — після Meta Ads (найсильніший сигнал)
+Зараз вердикт на 3 сигналах (соц TikTok + пошук Google + болі). Додати 4-й, найкомерційніший:
+**чи конкуренти прибутково крутять рекламу зараз.** Реклама 30+ днів = товар точно прибутковий
+(ніхто не ллє в збиток місяць) → найсильніше «ТЕСТ». Нема реклами = двозначно (незаймана АБО мертва).
+```
+Filter STRONG → Meta Ads check (по товару) → Idea Verdict (з ad_score)
+```
+**Джерело:** ScrapeCreators **FB Ads Library** (НЕ Metapi — той ключ витік, перегенерувати).
+Парс: к-сть релевантних оголошень, `ads_30_plus_days`, `longest_ad_days`. Влити в inputs вердикту.
+Це окрема гілка на наступну сесію.
+
 ---
 
 ## РЕЄСТР СЦЕНАРІЇВ (n8n workflows) + СИСТЕМА ТЕГІВ
