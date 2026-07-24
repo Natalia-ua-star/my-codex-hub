@@ -852,6 +852,30 @@ jump starter (21%).
 
 ---
 
+## РЕЄСТР СЦЕНАРІЇВ (n8n workflows) + СИСТЕМА ТЕГІВ
+
+**Конвенція назв:** `NN_DPRS_<опис>` (номер + код проєкту DPRS + опис).
+
+| № | Назва сценарію | Теги |
+|---|---|---|
+| 01 | `01_DPRS_TikTok Shop discovery` | `M1-discovery · src-tiktok · fn-report · fn-monitor · status-active` |
+| 02 | `02_DPRS_Trends Digest` | `M1-discovery · src-trends · fn-report · status-active` |
+| 03 | `03_DPRS_Trends Products` | `M1-discovery · src-trends · status-wip` |
+| 04 | `04_DPRS_Merchant discovery` | `M1-discovery · src-merchant · status-wip` |
+| 05 | `05_DPRS_Semantic Core validation` | `M2-validation · src-dataforseo · fn-core · status-wip` |
+| 06 | `06_DPRS_Prices & Margin` | `M2-validation · src-merchant · status-wip` |
+| 07 | `07_DPRS_Shortlist scoring` | `M3-shortlist · status-wip` (майбутнє) |
+
+**Система тегів (4 виміри), вішати по кілька на сценарій:**
+- **Етап:** `M1-discovery` (пошук) · `M2-validation` (перевірка) · `M3-shortlist` (фінал/тест)
+- **Джерело:** `src-tiktok` · `src-dataforseo` · `src-trends` · `src-merchant` · `src-meta`
+- **Функція:** `fn-report` (Telegram) · `fn-supplier` · `fn-monitor` · `fn-core`
+- **Статус:** `status-active` (працює) · `status-wip` (будується) · `status-off` (вимкнено)
+
+Фільтрація в n8n: за тегом показуєш усі `M1-discovery`, усі `status-wip`, усе `src-tiktok`.
+
+---
+
 ## РЕЄСТР НАЗВ НОД (n8n) — джерело правди
 
 **Правило:** назви нод у коді (`$("Ім'я")`) мають ТОЧНО збігатися з цим реєстром.
