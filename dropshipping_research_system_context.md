@@ -852,6 +852,50 @@ jump starter (21%).
 
 ---
 
+## ✅ МАШИНА 2 (валідація + семантичне ядро) — БАЗОВО ГОТОВО (24.07.2026)
+
+Сценарій `05_DPRS_Semantic Core validation`. Замикає воронку: RISING-сіди з inbox →
+перевірка попиту по 5 країнах → семантичне ядро для чемпіонів. Прогнано: 8 RISING →
+валідація (5 країн) → 6 STRONG → 1200 рядків ядра в `08_Semantic_Core`.
+
+**Потік:**
+```
+Manual Trigger → Read Inbox (12_Seed_Inbox) → Filter RISING (NEW + momentum RISING + price≥14)
+→ Build Country Batches (5 англ. країн) → DataForSEO Search Volume (HTTP, google_ads/search_volume)
+→ Parse Validation (матриця сід×країна + demand_verdict) → Filter STRONG (demand_verdict STRONG)
+→ DataForSEO Keywords Core (офіційна Labs нода: keyword_suggestions) → Parse Semantic Core
+→ Google Sheets: 08_Semantic_Core (Append/Update, match keyword_id)
+```
+
+| Нода | Роль |
+|---|---|
+| `Read Inbox` | Google Sheets Get Rows з `12_Seed_Inbox` |
+| `Filter RISING` | Code: `status=NEW` + `momentum RISING` + `price≥14`; готує `keywords` список |
+| `Build Country Batches` | Code: 5 англ. країн (US/UK/CA/AU/NZ), `location_name`+`location_code` |
+| `DataForSEO Search Volume` | HTTP POST `keywords_data/google_ads/search_volume/live`; Raw body з коду; batched (5 викликів) |
+| `Parse Validation` | Code: матриця сід×країна, `vol_total`, `trend_US`, `demand_verdict` (STRONG/MEDIUM/LOW) |
+| `Filter STRONG` | Code: тільки `demand_verdict=STRONG` → на ядро |
+| `DataForSEO Keywords Core` | **офіційна Labs нода**, Operation `Keyword Suggestions`, keyword=рядок, location=«United States», language=«English», limit 300 |
+| `Parse Semantic Core` | Code: `result[0].items[]` → 20 колонок; кластер з `search_intent_info.main_intent`; gap_score; pain_confirmed |
+
+**Ключові уроки Машини 2:**
+- **Валідація vs ядро — різні ендпоінти.** `search_volume` (Google Ads) = точний обсяг по країнах,
+  batched списком (дешево, 5 викликів). `keyword_suggestions` (Labs) = лонг-тейли фрази (болі),
+  точково по сіду. **`keyword_ideas` НЕ юзати** — категорійне сміття («jump starter»→«doodle jump»/пісні).
+- **Дворівнево:** широка дешева валідація (5 країн) → глибоке ядро тільки для STRONG у US.
+- **Мова/локація — НАЗВАМИ** для дедикованої/Labs ноди («United States», «English»), не кодами.
+- **HTTP body** для DataForSEO: Raw + `JSON.stringify(...)` з коду (JSON-режим n8n глючить на масивах/локації).
+- **5 країн — усі англомовні** (US/UK/CA/AU/NZ) → переклад не потрібен. US-ядро універсальне для всіх.
+- **Подвійний сигнал:** TikTok momentum × Google trend. Напр. `vegetable seeds` 🔥 на TikTok, але
+  ↓FALLING у Google (сезон) → впав зі STRONG на MEDIUM. Один сигнал брехав би.
+- **DataForSEO — pay-as-you-go** ($50 депозит тягнеться довго; виклик ~$0.05-0.09); дешевше за SerpApi
+  підписку і дає абсолютний обсяг + intent (чого SerpApi не має). SerpApi лишити лише для Trends.
+
+**Використання `08_Semantic_Core`:** фільтр `pain_confirmed=TRUE` → рекламні хуки; `gap_score`↑ →
+прогалини (попит+низька конкуренція); `cluster=PROBLEM/COMPARISON` → теми креативів.
+
+---
+
 ## РЕЄСТР СЦЕНАРІЇВ (n8n workflows) + СИСТЕМА ТЕГІВ
 
 **Конвенція назв:** `NN_DPRS_<опис>` (номер + код проєкту DPRS + опис).
