@@ -936,13 +936,15 @@ mini chainsaw 930дн). Тобто всі 6 ринків підтверджен�
 
 | № | Назва сценарію | Теги |
 |---|---|---|
+**Реальна нумерація n8n (джерело правди — станом на 27.07.2026):**
 | 01 | `01_DPRS_TikTok Shop discovery` | `M1-discovery · src-tiktok · fn-report · fn-monitor · status-active` |
-| 02 | `02_DPRS_Trends Digest` | `M1-discovery · src-trends · fn-report · status-active` |
-| 03 | `03_DPRS_Trends Products` | `M1-discovery · src-trends · status-wip` |
-| 04 | `04_DPRS_Merchant discovery` | `M1-discovery · src-merchant · status-wip` |
-| 05 | `05_DPRS_Trends Digest` | `M1-discovery · src-trends · fn-report · status-active` (семантичне ядро живе всередині Machine 2, не окремий флоу) |
-| 06 | `06_DPRS_Prices & Margin` | `M2-validation · src-apify · fn-supplier · fn-verdict · status-active` |
-| 07 | `07_DPRS_Shortlist` | `M3-shortlist · fn-report · status-active` |
+| 02 | `02_DPRS_Semantic Core validation` | `M2-validation · src-dataforseo · fn-core · status-wip` |
+| 03 | `03_DPRS_Prices & Margin` | `M2-validation · src-apify · fn-supplier · fn-verdict · status-active` |
+| 04 | `04_DPRS_Shortlist` | `M3-shortlist · fn-report · status-active` |
+| 05 | `05_DPRS_Trends Digest` | `M1-discovery · src-trends · fn-report · status-active` |
+| 06 | `06_DPRS_Trends Related` | `M1-discovery · src-trends · status-wip` |
+
+(Примітка: аркуші зберегли історичні назви — `06_Margin`, `07_Test_Products` — вони НЕ залежать від номера воркфлоу.)
 
 **Система тегів (4 виміри), вішати по кілька на сценарій:**
 - **Етап:** `M1-discovery` (пошук) · `M2-validation` (перевірка) · `M3-shortlist` (фінал/тест)
@@ -1071,7 +1073,7 @@ Hashtag_Stats (топ за avg_views) → TikTok Hashtag Search (1 кредит/
 
 Маржа — 5-й і вирішальний сигнал: товар може пройти 4 сигнали (попит+реклама), але **тонка маржа його вбиває** (напр. automatic litter box: 🟢 PROVEN, попит 90k/міс, але собівартість $91 при роздрібі $139 → маржа 1.52x → 🔴 СТОП-МАРЖА).
 
-### Сценарій `06_DPRS_Prices & Margin` (status-active, AliExpress-гілка готова)
+### Сценарій `03_DPRS_Prices & Margin` (status-active, AliExpress-гілка готова)
 Ланцюг:
 ```
 Manual → 13_Verdicts (read) → 12_Seed_Inbox (read, join роздрібної ціни по inbox_id)
@@ -1102,7 +1104,7 @@ Manual → 13_Verdicts (read) → 12_Seed_Inbox (read, join роздрібної
 margin_id	product_id	товар	ніша	платформа	роздрібна	собівартість	маржа	маржа_вердикт	надійних_знайдено	відсіяно_дешевих	пошук_лінк	постачальник_1	лінк_1	постачальник_2	лінк_2	постачальник_3	лінк_3	created_at
 ```
 
-### Сценарій `07_DPRS_Shortlist` (status-active) — відбір кандидатів + звіт
+### Сценарій `04_DPRS_Shortlist` (status-active) — відбір кандидатів + звіт
 Окремий флоу (читає ВЖЕ оновлений `13_Verdicts`):
 ```
 Manual → 13_Verdicts (read) → 12_Seed_Inbox (read, ВЕСЬ аркуш) → Build 07_Test_Products
@@ -1162,6 +1164,19 @@ Schedule Trigger (щодня 08:00 America/New_York)
 - **Поля інбоксу:** Build Inbox Seed віддає всі 28 колонок — Trends+Shopping заповнюють (inbox_id, niche, generic_seed, status=NEW, source, price, currency, rating, rating_count, seller_count, source_detail=тренд, raw_title, product_url, country, discovered_at); TikTok-only (organic_views, video_url, momentum, trend, total_sold…) — порожні (Machine 2 їх не читає); checked_at/check_count — заповнить Level-2 моніторинг пізніше.
 - **SerpApi поля:** `trending_searches[]` → `query`, `search_volume`, `categories[].name`. Гео через `geo` param.
 - **Telegram HTML:** усі URL у href обгортати `&`→`&amp;` (інакше багатопараметрові лінки, напр. FB Ad Library, не відкриваються).
+
+### Сценарій `06_DPRS_Trends Related` (status-wip) — Google Trends related як 3-є джерело
+Окремий воркфлоу. Розкрутка **широких ніш** через Google Trends RELATED_QUERIES (rising) → зростаючі товарні запити.
+```
+Manual → Niches → Trends Related → Parse Related → Filter Products → Parse Seeds → Google Shopping → Build Inbox Seed → 12_Seed_Inbox
+```
+- **`Niches`** — 8 широких термінів × країни (`car accessories`, `pet products`, `kitchen gadgets`…). Multi-country: niche × geo (US/GB/CA/AU/NZ) = 40 запитів/прогін (SerpApi квота!). Можна звузити geos.
+- **`Trends Related`** — SerpApi `engine=google_trends`, `data_type=RELATED_QUERIES`, `q=term`, `geo`. Вертає `related_queries.rising[]` `{query, value(Breakout/+%), extracted_value}`.
+- **`Parse Related`** — збирає rising по «ніша — країна» в текст (заголовок блоку тримає країну).
+- **`Filter Products`** — OpenAI (JSON Schema strict, потрібен `additionalProperties:false` у КОЖНОМУ об'єкті!) чистить шум: прибирає бренди/моделі (dyson, chery arrizo), не-товари (ai agents, k-pop, news), модифікатори (best/near me) → generic-товари. Country бере з заголовка блоку.
+- далі **та сама price-частина**, що в Trends Digest (Parse Seeds → Google Shopping → Build Inbox Seed), лише `source=google_trends_related`.
+- **Урок:** RELATED_QUERIES по ШИРОКИХ нішах працює (rising є), по ВУЗЬКИХ товарах — порожньо. Тому related годуємо нішами, а не готовими товарами. Дані шумні → OpenAI-фільтр обов'язковий.
+- **Розклад:** 1-2×/тиждень (related рухається повільніше за новини).
 
 ### 🔜 ВІДКЛАДЕНО (фіксимо коли дійдемо)
 1. **Machine 2 вхід** — замінити `Filter RISING` на `Filter Entry` (Code): `status===NEW AND (source===tiktok_shop ? momentum~RISING : true)`. Тобто TikTok — лише RISING, інші джерела — всі NEW. (SPIKE у TikTok щодня → лишається WATCH, не валідується.)
