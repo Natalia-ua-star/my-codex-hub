@@ -944,8 +944,8 @@ mini chainsaw 930дн). Тобто всі 6 ринків підтверджен�
 | 05 | `05_DPRS_Trends Digest` | `M1-discovery · src-trends · fn-report · status-active` |
 | 06 | `06_DPRS_Trends Related` | `M1-discovery · src-trends · status-wip` |
 | 07 | `07_DPRS_Instagram discovery` | `M1-discovery · src-instagram · status-active` |
-| 08 | `08_DPRS_Facebook discovery` | `M1-discovery · src-facebook · status-planned` |
-| 09 | `09_DPRS_YouTube Shorts discovery` | `M1-discovery · src-youtube · status-planned` |
+| 08 | `08_DPRS_Facebook discovery` | `status-skipped` (Ad Library покриває M2; Marketplace = вживані, слабкий сигнал) |
+| 09 | `09_DPRS_YouTube Shorts discovery` | `M1-discovery · src-youtube · status-active` |
 
 (Примітка: аркуші зберегли історичні назви — `06_Margin`, `07_Test_Products` — вони НЕ залежать від номера воркфлоу.)
 
@@ -1193,6 +1193,28 @@ Manual → Hashtags → Instagram Search → Parse Reels → Filter Products →
 - **price-хвіст** — Parse Seeds → Google Shopping → Build Inbox Seed (`source=instagram`).
 - **Enrichment:** Build Inbox Seed через `matchReel` (збіг seed↔caption по словах) заповнює `organic_views` (перегляди Reels) + `video_url` (лінк на Reels) — IG-сід стає багатим як TikTok (ціна + рейтинг + перегляди + лінк).
 - **Урок:** Instagram флакі (той самий хештег дає різну к-сть по прогонах); дедуп по inbox_id це прощає.
+
+### Сценарій `09_DPRS_YouTube Shorts discovery` (status-active) — 5-е джерело
+Скрапер — **офіційний YouTube Data API v3** (Google-акаунт, не ScrapeCreators; безкоштовно в межах квоти).
+```
+Manual → Keywords → YouTube Search → Parse Shorts → Filter Products → Parse Seeds → Google Shopping → Build Inbox Seed (source=youtube_shorts) → 12_Seed_Inbox
+```
+- **`Keywords`** — keyword × країна (8 запитів × 5 країн = 40): `tiktok made me buy it`, `amazon must haves`, `cool gadgets`, `kitchen gadgets`, `car gadgets`, `pet gadgets`, `amazon finds`, `tiktok finds`.
+- **`YouTube Search`** — GET `https://www.googleapis.com/youtube/v3/search`, params `part=snippet, q, type=video, videoDuration=short, order=viewCount, regionCode={{region}}, relevanceLanguage=en, maxResults=25, key`. ⚠️ **`regionCode` обов'язково** (без нього дефолт може бути DE!). **Квота: search=100 юнітів/запит × 40 = 4000/прогін** (денна 10 000 → макс ~2 прогони/день). `search.list` НЕ віддає переглядів (тому organic_views порожній; video_url — з matchShort по назві Short).
+- **`Parse Shorts`** — тримає країну в блоці `### US`, віддає `shorts_input` (текст) + `shorts[]` (для matchShort).
+- **`Filter Products`** — OpenAI (JSON Schema strict), country з заголовка блоку.
+- **price-хвіст** — Parse Seeds → Google Shopping → Build Inbox Seed (`source=youtube_shorts`), парент по q+індекс (fallback), matchShort → `video_url`.
+- Мультикантрі: сіди з US/GB/CA/AU/NZ, `country` тече в Google Shopping location.
+
+### 🎯 СИСТЕМА: 5 ДЖЕРЕЛ ВІДКРИТТЯ (станом на 27.07.2026)
+```
+01 TikTok Shop  ─┐
+05 Trends Digest ─┤
+06 Trends Related─┼─► 12_Seed_Inbox (status=NEW, source=...) ─► Machine 2 (валідація)
+07 Instagram    ─┤        inbox_id=SIG-djb2(seed) = крос-джерельний дедуп
+09 YouTube Shorts┘
+```
+Спільний патерн джерела: **[скрапер] → Parse → Filter Products (OpenAI) → Parse Seeds → Google Shopping (ціна) → Build Inbox Seed (свій source) → інбокс**. Facebook (08) пропущено (Ad Library у M2, Marketplace слабкий). Instagram/YouTube — matchReel/matchShort заповнюють organic_views/video_url.
 
 ### 🔜 ВІДКЛАДЕНО (фіксимо коли дійдемо)
 1. **Machine 2 вхід** — замінити `Filter RISING` на `Filter Entry` (Code): `status===NEW AND (source===tiktok_shop ? momentum~RISING : true)`. Тобто TikTok — лише RISING, інші джерела — всі NEW. (SPIKE у TikTok щодня → лишається WATCH, не валідується.)
