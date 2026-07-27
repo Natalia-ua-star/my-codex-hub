@@ -941,13 +941,13 @@ mini chainsaw 930дн). Тобто всі 6 ринків підтверджен�
 | 03 | `03_DPRS_Trends Products` | `M1-discovery · src-trends · status-wip` |
 | 04 | `04_DPRS_Merchant discovery` | `M1-discovery · src-merchant · status-wip` |
 | 05 | `05_DPRS_Semantic Core validation` | `M2-validation · src-dataforseo · fn-core · status-wip` |
-| 06 | `06_DPRS_Prices & Margin` | `M2-validation · src-merchant · status-wip` |
-| 07 | `07_DPRS_Shortlist scoring` | `M3-shortlist · status-wip` (майбутнє) |
+| 06 | `06_DPRS_Prices & Margin` | `M2-validation · src-apify · fn-supplier · fn-verdict · status-active` |
+| 07 | `07_DPRS_Shortlist` | `M3-shortlist · fn-report · status-active` |
 
 **Система тегів (4 виміри), вішати по кілька на сценарій:**
 - **Етап:** `M1-discovery` (пошук) · `M2-validation` (перевірка) · `M3-shortlist` (фінал/тест)
-- **Джерело:** `src-tiktok` · `src-dataforseo` · `src-trends` · `src-merchant` · `src-meta`
-- **Функція:** `fn-report` (Telegram) · `fn-supplier` · `fn-monitor` · `fn-core`
+- **Джерело:** `src-tiktok` · `src-dataforseo` · `src-trends` · `src-merchant` · `src-meta` · `src-apify`
+- **Функція:** `fn-report` (Telegram) · `fn-supplier` · `fn-monitor` · `fn-core` · `fn-verdict`
 - **Статус:** `status-active` (працює) · `status-wip` (будується) · `status-off` (вимкнено)
 
 Фільтрація в n8n: за тегом показуєш усі `M1-discovery`, усі `status-wip`, усе `src-tiktok`.
@@ -1061,3 +1061,73 @@ Hashtag_Stats (топ за avg_views) → TikTok Hashtag Search (1 кредит/
 - **Завжди повний код**, не сніпети.
 - Ключі API — лише в n8n Credentials, ніколи в чат.
 - Метод створення шапки в локалі користувача: `=SPLIT("a,b,c";",")` (роздільник аргументів `;`).
+
+---
+
+## MACHINE 2 → ФІНАЛ: MARGIN (5-й сигнал) + SHORTLIST — побудовано 25.07.2026
+
+### 5-сигнальна модель рішення (фінал воронки)
+`TikTok momentum × Google попит (5 країн) × болі/прогалини (семантика) × Meta реклама (вік) × **МАРЖА (собівартість постачальника)**`
+
+Маржа — 5-й і вирішальний сигнал: товар може пройти 4 сигнали (попит+реклама), але **тонка маржа його вбиває** (напр. automatic litter box: 🟢 PROVEN, попит 90k/міс, але собівартість $91 при роздрібі $139 → маржа 1.52x → 🔴 СТОП-МАРЖА).
+
+### Сценарій `06_DPRS_Prices & Margin` (status-active, AliExpress-гілка готова)
+Ланцюг:
+```
+Manual → 13_Verdicts (read) → 12_Seed_Inbox (read, join роздрібної ціни по inbox_id)
+  ├─ AliExpress: fetch_cat/aliexpress-products-scraper → Parse MarginAliExpress ─┐
+  └─ 1688: Build CN Query → devcake/1688-com-products-scraper → Parse Margin 1688 │
+           → Translate 1688 (OpenAI) → Apply Translation ──────────────────────┤
+                                                                    → Merge (Append)
+                                                                          ├─► Google Sheets 06_Margin (match margin_id)
+                                                                          └─► Final Verdict → Google Sheets 13_Verdicts (match product_id)
+```
+
+**Логіка Parse Margin (універсальна, авто-визначення платформи):**
+- `PLATFORM` авто-визначається по полях товару (`offer_id`/`price_cny`/`booked_count`/`member_id` → "1688", інакше "AliExpress"). Раніше руками — забувалось, тому авто.
+- Надійність постачальника: `rating≥4.3 AND orders≥100` (де є рейтинг) АБО `repurchase≥15%` / verified/factory (1688, де рейтингу нема). Fallback-поля через `pick()` — читає fetch_cat + devcake ali + devcake 1688.
+- **Floor «той самий товар»:** `floor = роздрібна / MAX_MARGIN(4)`. Постачальники дешевші за floor = аксесуар/1шт → відсіюються (`відсіяно_дешевих`). Виправляє фейкові маржі (напр. fishing lure з 57x на реальні 4x).
+- Собівартість = найдешевший НАДІЙНИЙ ≥ floor. Топ-3 для резерву. `RATE` конвертує в USD (devcake дає `price_usd` → RATE=1).
+- Вердикт: 🟢 GO (≥3x) · 🟡 ТІСНО (2-3x) · 🔴 СЛАБКО (<2x) · 🟠 ТІЛЬКИ ДЕШЕВІ (нема ≥floor, перевір).
+
+**Final Verdict (v3):** бере МАКС маржу по товару серед платформ, **ігнорує 🟠-сміття** (не дає фейку 631x перебити чесну маржу). Комбінує з базовим вердиктом: `ТЕСТ + маржа<2 → 🔴 СТОП-МАРЖА`; `<3 → 🟡 ТЕСТ (тісна)`; `≥3 → 🟢 ТЕСТ`. Дозаписує в `13_Verdicts` (Append-or-Update по product_id).
+
+**Актори (Apify):** AliExpress = `fetch_cat/aliexpress-products-scraper` (або `devcake/aliexpress-products-scraper` — ширше покриття). 1688 = `devcake/1688-com-products-scraper` (`price_usd` готовий, `composite_score` рейтинг, ехо `query`). CJ/GlobalSources — НЕ підходять (URL-only / MOQ-опт, без keyword-пошуку).
+
+**1688 — китайський пошук (щоб не було сміття):** `Seed→CN` (OpenAI: англ seed → кит keyword) → `Build CN Query` → devcake/1688 (queries=keyword_cn) → Parse Margin 1688 (qmap зводить кит-`query` назад до англ seed для join роздрібної) → `Translate 1688` (OpenAI: кит назви → укр) → `Apply Translation`. **Статус: налаштовано, дозапуск завтра.**
+
+### Аркуш `06_Margin` (універсальний, усі маркетплейси)
+Один рядок = товар × платформа. `margin_id = MRG-{product_id}-{PCODE}` (ALI/1688) — унікальний, без колізій.
+```
+margin_id	product_id	товар	ніша	платформа	роздрібна	собівартість	маржа	маржа_вердикт	надійних_знайдено	відсіяно_дешевих	пошук_лінк	постачальник_1	лінк_1	постачальник_2	лінк_2	постачальник_3	лінк_3	created_at
+```
+
+### Сценарій `07_DPRS_Shortlist` (status-active) — відбір кандидатів + звіт
+Окремий флоу (читає ВЖЕ оновлений `13_Verdicts`):
+```
+Manual → 13_Verdicts (read) → 12_Seed_Inbox (read, ВЕСЬ аркуш) → Build 07_Test_Products
+  ├─► Google Sheets 07_Test_Products (match product_id)
+  ├─► Build Report      → Telegram   (вітання+дата, 1 товар = 1 повідомлення)
+  └─► Build Watch Report → Telegram   (⚡ SPIKE детально + 🧊 COOLING підсумок)
+```
+- **Кандидати на тест:** `фінальний_вердикт` містить 🟢 або 🟡 (🔴/ПОДИВИТИСЬ/ПРОПУСТИТИ — ні). Сорт: 🟢 спершу, далі по маржі.
+- **Логіка momentum:** 🔥 RISING → тест (через пайплайн); ⚡ SPIKE → нагляд (сплеск від 1 ролика); ⚠️ COOLING → нагляд (підсумок); 💀 SATURATED → пропуск; → FLAT → низький пріоритет.
+- `Build 07_Test_Products` читає вердикти І інбокс **по імені** (`$("13_Verdicts")`, `$("12_Seed_Inbox")`) — порядок нод не ламає $input. Join: `product_id (вердикт) = inbox_id (інбокс)`.
+- Дотягує з інбоксу: `тік_ток_товар` (product_url = продукт конкурента), `тік_ток_відео` (video_url), `тік_ток_продано` (total_sold).
+- Будує лінки: `реклама_бібліотека` (Meta Ad Library по товару — показує рекламу конкурентів), `пошук_ali`, `пошук_1688`.
+
+**Звіт Telegram (Build Report):** parse_mode HTML, 1 item = 1 повідомлення. Вступ (🎉 Вітаю + дата + к-сть). По товару: ВЕЛИКА ЖИРНА назва, вердикт, маржа ($cost→$retail), попит, реклама 30+дн, постачальник (лінк), блок «Конкурент і джерела» (🏪 продукт конкурента · 🎬 відео · 📣 реклама конкурентів · 🔎 AliExpress/1688), кут (прогалини) + болі.
+- **Критично:** усі URL у href обгортати `href(u)=u.replace(/&/g,"&amp;")` — інакше Telegram HTML ламає багатопараметрові лінки (Facebook Ad Library з 5×`&` не відкривався).
+
+### Аркуш `07_Test_Products`
+```
+shortlist_id	product_id	товар	ніша	фінальний_вердикт	маржа	собівартість	роздрібна	постачальник_топ	пошук_ali	пошук_1688	тік_ток_товар	тік_ток_відео	тік_ток_продано	реклама_бібліотека	реклам_30дн	найдовше_дн	топ_обсяг	прогалини	болі	доданий
+```
+
+### Назви нод (реєстр, 06+07)
+`Parse MarginAliExpress` (AliExpress), `Parse Margin 1688` (1688), `Merge`, `Final Verdict`, `update 13_Verdicts`, `Seed→CN`, `Build CN Query`, `Translate 1688`, `Apply Translation`, `Build 07_Test_Products`, `Build Report`, `Build Watch Report`.
+
+### 🔜 ВІДКЛАДЕНО
+1. **1688-гілка** — дозапуск (кит-пошук + переклад готові, лишилось прогнати й влити в Merge).
+2. **Дублікати в `12_Seed_Inbox`** (×6 на товар) — баг запису Machine 1: `Build Seed Inbox → Google Sheets` робить Append замість Update. Полагодити match по `inbox_id`. Тимчасово watch-звіт дедуплить у коді.
+3. Числова scoring-модель (стара `Decision`-таба) — на пенсії, замінена вердиктною + Shortlist.
