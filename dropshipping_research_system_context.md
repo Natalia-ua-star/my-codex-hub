@@ -940,7 +940,7 @@ mini chainsaw 930дн). Тобто всі 6 ринків підтверджен�
 | 02 | `02_DPRS_Trends Digest` | `M1-discovery · src-trends · fn-report · status-active` |
 | 03 | `03_DPRS_Trends Products` | `M1-discovery · src-trends · status-wip` |
 | 04 | `04_DPRS_Merchant discovery` | `M1-discovery · src-merchant · status-wip` |
-| 05 | `05_DPRS_Semantic Core validation` | `M2-validation · src-dataforseo · fn-core · status-wip` |
+| 05 | `05_DPRS_Trends Digest` | `M1-discovery · src-trends · fn-report · status-active` (семантичне ядро живе всередині Machine 2, не окремий флоу) |
 | 06 | `06_DPRS_Prices & Margin` | `M2-validation · src-apify · fn-supplier · fn-verdict · status-active` |
 | 07 | `07_DPRS_Shortlist` | `M3-shortlist · fn-report · status-active` |
 
@@ -1131,3 +1131,39 @@ shortlist_id	product_id	товар	ніша	фінальний_вердикт	м
 1. **1688-гілка** — дозапуск (кит-пошук + переклад готові, лишилось прогнати й влити в Merge).
 2. **Дублікати в `12_Seed_Inbox`** (×6 на товар) — баг запису Machine 1: `Build Seed Inbox → Google Sheets` робить Append замість Update. Полагодити match по `inbox_id`. Тимчасово watch-звіт дедуплить у коді.
 3. Числова scoring-модель (стара `Decision`-таба) — на пенсії, замінена вердиктною + Shortlist.
+
+---
+
+## МУЛЬТИ-ДЖЕРЕЛЬНИЙ ІНБОКС + `05_DPRS_Trends Digest` — побудовано 27.07.2026
+
+### Архітектурний принцип: Machine 2 джерело-агностична
+`12_Seed_Inbox` = єдиний стик (junction). Усі джерела відкриття пишуть стандартний сід туди, Machine 2 читає звідти — байдуже TikTok / Trends / Instagram / YouTube.
+```
+TikTok Shop   ─┐
+Google Trends ─┤
+Instagram     ─┼─► 12_Seed_Inbox (status=NEW) ─► Machine 2 (валідація) ─► вердикт
+YouTube Shorts─┘
+```
+- **Кожне джерело саме пре-фільтрує** і пише `status=NEW` тільки для вартісних (TikTok: RISING; SPIKE/COOLING → WATCH; Trends: товарний потенціал; Insta/YT: віральні з товаром).
+- **Стандартний сід (мінімум для Machine 2):** `inbox_id · generic_seed · niche · source · status · country · discovered_at`. Решта (momentum/views/hashtags) — джерело-специфічна начинка, Machine 2 бере лише `generic_seed`.
+- **`inbox_id = SIG-djb2(generic_seed)`** — детермінований → крос-джерельний дедуп (TikTok і Trends знайшли «power bank» → один рядок). Append-or-Update по `inbox_id`.
+- **Оновлення вже знайденого — автоматичне:** та сама формула id + Append-or-Update оновлює наявний рядок; оновлюються ТІЛЬКИ колонки, що нода віддає (решта не чіпається).
+
+### Сценарій `05_DPRS_Trends Digest` (status-active) — Google Trends як 2-е джерело
+```
+Schedule Trigger (щодня 08:00 America/New_York)
+  → Countries (5: US/GB/CA/AU/NZ) → Trending Now (SerpApi google_trends_trending_now, Run Once Each Item)
+  → Build Digest Input (топ-10 трендів × країна → текст)
+     ├─► OpenAI (дайджест-текст) → Extract Digest (md→TG HTML, нарізка 3800) → Telegram   [людині]
+     └─► OpenAI Seeds (JSON, товарні сіди) → Build Inbox Seed (SOURCE=google_trends) → Google Sheets 12_Seed_Inbox   [у Machine 2]
+```
+- **Дайджест-гілка:** 7 напрямків (політика/спорт/культура/фінанси/здоров'я/тех/інше) + 🔁 спільні тренди (2+ країн) + **🛒 Товарний потенціал** (фільтрує новини, шукає товари/ніші) + 💡 як використати. Заголовок «📊 GOOGLE TRENDS NOW» + дата.
+- **Сід-гілка:** OpenAI Seeds (JSON) витягує до 8 товарів `{seed, niche(англ, фікс-список), country, reason}`, ігнорує чисті новини. `Build Inbox Seed` → стандартний сід (`source=google_trends, status=NEW`) → інбокс. Приклад виходу: solar power bank / emergency radio (ausalert), electric blanket / thermal socks (NZ морози), personal gps tracker (dementia).
+- **SerpApi поля:** `trending_searches[]` → `query`, `search_volume`, `categories[].name`. Гео через `geo` param.
+- **Telegram HTML:** усі URL у href обгортати `&`→`&amp;` (інакше багатопараметрові лінки, напр. FB Ad Library, не відкриваються).
+
+### 🔜 ВІДКЛАДЕНО (фіксимо коли дійдемо)
+1. **Machine 2 вхід** — замінити `Filter RISING` на `Filter Entry` (Code): `status===NEW AND (source===tiktok_shop ? momentum~RISING : true)`. Тобто TikTok — лише RISING, інші джерела — всі NEW. (SPIKE у TikTok щодня → лишається WATCH, не валідується.)
+2. **Захист статусу при перезнаходженні** — Build Inbox Seed пише `status=NEW`, що скидає вже `VALIDATED` товари назад у валідацію (зайві витрати). Фікс: при перезнаходженні не віддавати `status` (не чіпати колонку) АБО перевіряти наявний статус. Для першого запуску (порожня таблиця) — неактуально.
+3. **Instagram / YouTube Shorts** — додати як джерела за тим самим патерном (пре-фільтр → Build Inbox Seed зі своїм SOURCE → інбокс).
+4. **Дублікати в `12_Seed_Inbox`** (×6 на товар з TikTok) — баг Append→Update у Machine 1, match по `inbox_id`.
