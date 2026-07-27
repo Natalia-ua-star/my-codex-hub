@@ -1155,10 +1155,11 @@ Schedule Trigger (щодня 08:00 America/New_York)
   → Countries (5: US/GB/CA/AU/NZ) → Trending Now (SerpApi google_trends_trending_now, Run Once Each Item)
   → Build Digest Input (топ-10 трендів × країна → текст)
      ├─► OpenAI (дайджест-текст) → Extract Digest (md→TG HTML, нарізка 3800) → Telegram   [людині]
-     └─► OpenAI Seeds (JSON, товарні сіди) → Build Inbox Seed (SOURCE=google_trends) → Google Sheets 12_Seed_Inbox   [у Machine 2]
+     └─► OpenAI Seeds (JSON) → Parse Seeds → Google Shopping (SerpApi, ціна) → Build Inbox Seed (SOURCE=google_trends) → Google Sheets 12_Seed_Inbox   [у Machine 2]
 ```
 - **Дайджест-гілка:** 7 напрямків (політика/спорт/культура/фінанси/здоров'я/тех/інше) + 🔁 спільні тренди (2+ країн) + **🛒 Товарний потенціал** (фільтрує новини, шукає товари/ніші) + 💡 як використати. Заголовок «📊 GOOGLE TRENDS NOW» + дата.
-- **Сід-гілка:** OpenAI Seeds (JSON) витягує до 8 товарів `{seed, niche(англ, фікс-список), country, reason}`, ігнорує чисті новини. `Build Inbox Seed` → стандартний сід (`source=google_trends, status=NEW`) → інбокс. Приклад виходу: solar power bank / emergency radio (ausalert), electric blanket / thermal socks (NZ морози), personal gps tracker (dementia).
+- **Сід-гілка (з ціною):** `OpenAI Seeds` (JSON, до 8 товарів `{seed, niche(англ фікс-список), country, reason}`, ігнорує новини) → `Parse Seeds` (розбиває масив на items + мапить `location` повною назвою країни для SerpApi) → **`Google Shopping`** (SerpApi `google_shopping`, `q=generic_seed`, `location=назва`, Run Once Each Item) → `Build Inbox Seed`. Google Shopping ЗАКРИВАЄ дірку: trend-сіди не мають роздрібної ціни (не з TikTok Shop), а Shopping дає `price` (медіана `extracted_price`), `rating` (сер.), `rating_count` (сума reviews), `seller_count` (унік. sources), `raw_title` (реальна назва), `product_url` (`encodeURI` — інакше пробіли ламають лінк). Тепер trend-сід повноцінний → margin-флоу рахує маржу так само, як для TikTok. Приклад: emergency radio $40.90 (ausalert), heated blanket $70.99 (NZ морози), pill organizer box $11.99 (dementia).
+- **Поля інбоксу:** Build Inbox Seed віддає всі 28 колонок — Trends+Shopping заповнюють (inbox_id, niche, generic_seed, status=NEW, source, price, currency, rating, rating_count, seller_count, source_detail=тренд, raw_title, product_url, country, discovered_at); TikTok-only (organic_views, video_url, momentum, trend, total_sold…) — порожні (Machine 2 їх не читає); checked_at/check_count — заповнить Level-2 моніторинг пізніше.
 - **SerpApi поля:** `trending_searches[]` → `query`, `search_volume`, `categories[].name`. Гео через `geo` param.
 - **Telegram HTML:** усі URL у href обгортати `&`→`&amp;` (інакше багатопараметрові лінки, напр. FB Ad Library, не відкриваються).
 
