@@ -943,6 +943,9 @@ mini chainsaw 930дн). Тобто всі 6 ринків підтверджен�
 | 04 | `04_DPRS_Shortlist` | `M3-shortlist · fn-report · status-active` |
 | 05 | `05_DPRS_Trends Digest` | `M1-discovery · src-trends · fn-report · status-active` |
 | 06 | `06_DPRS_Trends Related` | `M1-discovery · src-trends · status-wip` |
+| 07 | `07_DPRS_Instagram discovery` | `M1-discovery · src-instagram · status-active` |
+| 08 | `08_DPRS_Facebook discovery` | `M1-discovery · src-facebook · status-planned` |
+| 09 | `09_DPRS_YouTube Shorts discovery` | `M1-discovery · src-youtube · status-planned` |
 
 (Примітка: аркуші зберегли історичні назви — `06_Margin`, `07_Test_Products` — вони НЕ залежать від номера воркфлоу.)
 
@@ -1177,6 +1180,19 @@ Manual → Niches → Trends Related → Parse Related → Filter Products → P
 - далі **та сама price-частина**, що в Trends Digest (Parse Seeds → Google Shopping → Build Inbox Seed), лише `source=google_trends_related`.
 - **Урок:** RELATED_QUERIES по ШИРОКИХ нішах працює (rising є), по ВУЗЬКИХ товарах — порожньо. Тому related годуємо нішами, а не готовими товарами. Дані шумні → OpenAI-фільтр обов'язковий.
 - **Розклад:** 1-2×/тиждень (related рухається повільніше за новини).
+
+### Сценарій `07_DPRS_Instagram discovery` (status-active) — Instagram як 4-е джерело
+Скрапер — **ScrapeCreators** (не Apify, бо вже є кредити). Механізм: віральні Reels по продуктових хештегах → AI витягує товар → Shopping-ціна → інбокс.
+```
+Manual → Hashtags → Instagram Search → Parse Reels → Filter Products → Parse Seeds → Google Shopping → Build Inbox Seed → 12_Seed_Inbox
+```
+- **`Hashtags`** — 1 хештег = 1 item (`tiktokmademebuyit`, `amazonfinds`, `gadgets`, `coolgadgets`, `kitchengadgets`, `cargadgets`, `petgadgets`, `homegadgets`).
+- **`Instagram Search`** — HTTP GET `https://api.scrapecreators.com/v1/instagram/search/hashtag`, header `x-api-key`, query `hashtag` (**БЕЗ `#` — # ламає URL як fragment!**), `media_type=all`, `date_posted=last-week`. **Run Once Each Item + Settings→On Error: Continue (regular output)** (порожні хештеги 404-ять «No posts found» → пропускаємо). `date_posted=last-day` часто порожній (Google-індекс лагає) — тому `last-week` + розклад пн+чт.
+- **`Parse Reels`** — фільтр віральних (`video_play_count ≥ 100k` АБО `like_count ≥ 10k`), дедуп по shortcode, віддає `reels_input` (текст для AI) + `reels[]` (структура для matchReel).
+- **`Filter Products`** — OpenAI (JSON Schema strict) витягує generic-товари з підписів.
+- **price-хвіст** — Parse Seeds → Google Shopping → Build Inbox Seed (`source=instagram`).
+- **Enrichment:** Build Inbox Seed через `matchReel` (збіг seed↔caption по словах) заповнює `organic_views` (перегляди Reels) + `video_url` (лінк на Reels) — IG-сід стає багатим як TikTok (ціна + рейтинг + перегляди + лінк).
+- **Урок:** Instagram флакі (той самий хештег дає різну к-сть по прогонах); дедуп по inbox_id це прощає.
 
 ### 🔜 ВІДКЛАДЕНО (фіксимо коли дійдемо)
 1. **Machine 2 вхід** — замінити `Filter RISING` на `Filter Entry` (Code): `status===NEW AND (source===tiktok_shop ? momentum~RISING : true)`. Тобто TikTok — лише RISING, інші джерела — всі NEW. (SPIKE у TikTok щодня → лишається WATCH, не валідується.)
