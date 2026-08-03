@@ -1285,3 +1285,39 @@ NEW → VALIDATED → MARGIN → CHECKED     (+ WATCH = не годний)
 - Дедуп по 06_Margin у Сцені 2 (зараз статусний дедуп через `status=MARGIN`).
 - Розклади `*/5`–`*/15` на 4 сцени + зсув Сцени 2/3/4.
 - Опційно: деталі реклами в `09_Ads` (swipe file креативів) — лише коли дійде до створення оголошень.
+
+## 🏪 ГІЛКА КОНКУРЕНТІВ + РАПОРТ (Scene 4, 03.08.2026)
+
+### Мета
+До Telegram-звіту й аркуша додати конкурентів: **хто продає, ціна від-до, скільки продавців, рейтинг, відгуки, продажі** + бізнес-інсайт по ціні. Запит іде ТІЛЬКИ на переможцях (1 товар/прогін) — економія API.
+
+### Ланцюг Scene 4 (фінал)
+```
+Trigger → 13_Verdicts Write → Seed Inbox → Prep Winners → SerpApi Shopping
+  → Get Product Id → Immersive Product (HTTP) → DataForSEO Amazon → Parse Competitors ─┬→ Build Report → Telegram
+                                                                                        └→ Competitors Rows → 05_Competitors
+                                                                                        └→ Report Row → 14_Report (опц., плоский підсумок)
+```
+
+### Вузли
+- **Prep Winners** (Code) — фільтрує переможців (`/ТЕСТ|ПОГРАНИЧНО/`), додає `seed`(=`товар` з 13_Verdicts), `location:'United States'`, `gl/hl`, і несе ВСІ поля звіту (SerpApi затирає json!). Інбокс-поля (`price/source/video_url/source_detail`) тягне з `Seed Inbox` — **нода Seed Inbox має стояти ПЕРЕД Prep Winners** (інакше `$('Seed Inbox')` порожній).
+- **SerpApi Shopping** (`Search Google Shopping`): `q={{ $json.seed }}`, `location={{ $json.location }}` (повна назва країни!). `shopping_results[]`: `source`(продавець), `extracted_price`, `rating`, `reviews`, `product_id`(=catalogid), `immersive_product_page_token`, `serpapi_immersive_product_api`. **Amazon у Google Shopping НЕ показується** (Amazon пішов з Google Shopping ~2015).
+- **Get Product Id** (Code) — бере `immersive_product_page_token` топ-результату + несе дані далі.
+- **Immersive Product** (HTTP Request, бо в n8n SerpApi-ноді немає immersive-операції): `GET serpapi.com/search.json`, `engine=google_immersive_product`, `page_token={{ $json.imm_token }}`, Auth=Predefined SerpApi. **Замінює мертвий `google_product`** («The Google Product service is no longer offered by Google»). Віддає `product_results` (специфікації/фічі всередині; окремих `reviews_results`/`specifications` НЕМАЄ — тексти відгуків з immersive недоступні).
+- **DataForSEO Amazon** (`Amazon → Get products advanced`, нативний вузол): `keyword={{ $('Get Product Id').first().json.seed }}` (по імені ноди, бо HTTP/Immersive затерли json), `location_name=United States`, **`language_name=English (United States)`** (Amazon хоче ринок у дужках, НЕ `English`/`en`!). Віддає `tasks[0].result[0].items[]`: `title`, `price_from`, `data_asin`, `rating.value`, `rating.votes_count`, `bought_past_month`(продажі), `is_best_seller`, `is_amazon_choice`.
+- **Parse Competitors** (Code) — Google Shopping → `comp_list` [{s,p,big}] (BIGBOX-регекс відрізняє 🛍 незалежних/Shopify від великих мереж); Amazon → діапазон `amz_min/max/med` + `amz_best`(бестселер) + `amz_choice`.
+- **Build Report** (Code) — структурований рапорт секціями: 💰 економіка + порада по ціні, 📈 попит+реклама (лінк FB Ad Library), 🏭 постачальники (назва→лінк→ціна, 🥇🥈🥉), 🏪 магазини + 🅰️ Amazon, 🕳 кут / 💬 болі / #️⃣ хештеги, 🔗 посилання, ✅ **ЩО РОБИТИ** (дія по вердикту + підняти ціну + замовити семпл + запустити рекламу).
+
+### Аркуш `05_Competitors` (детальна база конкурентів)
+Вузол **Competitors Rows** (Code, гілка від Parse Competitors) — **по рядку на кожен товар конкурента** (Google Shopping топ-20 + Amazon топ-25 за продажами). Колонки: `row_id, product_id, seed, джерело, продавець, назва, ціна, рейтинг, відгуки, продажі, лінк, asin, дата`. `row_id`=`{product_id}_{G|A}_{djb2/asin}` → повторний прогін оновлює, не дублює. **Лінк = формула `=HYPERLINK("url";"підпис")`** (клікабельний!); Amazon-url чистий `amazon.com/dp/{asin}`. ⚠️ Google Sheets вузол має бути в режимі **USER_ENTERED**, інакше формула стане текстом. Роздільник HYPERLINK `;` або `,` залежно від локалі Sheets.
+
+### Бізнес-інсайт (навіщо конкуренти)
+На jump starter: собівартість $16.76, роздрібна в системі $42.99, а **медіана ринку Amazon $89.99** (бестселер NOCO GB40 $99.95). Тобто ціна занижена → підняти до ~$65 (нижче Amazon's Choice $69.97) → маржа 2.57x → **3.9x**, вердикт 🟡→🟢. Рекомендована ціна = `round(amz_med*0.72)` виводиться у звіт і в `рекомендована_ціна`.
+
+### Уроки
+- **Amazon дістається лише окремо** (DataForSEO/SerpApi Amazon), не з Google Shopping.
+- **SerpApi Google Product мертвий** → `google_immersive_product` (через HTTP, бо n8n-нода не має операції).
+- **DataForSEO мова для Amazon** = `English (United States)` (поле `_name` = повна назва + ринок), для Google = `English`/`en`.
+- **Клікабельний лінк у Sheets** = `=HYPERLINK(...)` + USER_ENTERED; або чистий encoded-URL без пробілів.
+- **SerpApi/HTTP затирають json** → далі читати попередні дані по імені ноди (`$('Get Product Id')`), не `$json`.
+- **DataForSEO дешевший ~10-20×** за SerpApi, але task-based/складніший; при 1 товарі/прогін різниця копійчана → SerpApi для простоти, DataForSEO де нативно (Amazon).
