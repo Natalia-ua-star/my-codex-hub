@@ -1389,3 +1389,36 @@ Schedule → 12_Seed_Inbox(Read) → Pick for Margin → [AliExpress: devcake ф
 - **Фото по фото працює лише на AliExpress** (+ TikTok має своє). 1688/Alibaba image-match ненадійний → keyword.
 - **1688 дешевший ~1.7×, але без доставки** — потрібен `SHIP_BUFFER` для чесного порівняння + агент/семпл.
 - **Фільтр релевантності обов'язковий** для keyword-джерел (CJ/1688) — назва мусить містити ключ товару.
+
+---
+
+## CJ-ГІЛКА МАРЖІ (детально) — 06.08.2026
+
+### Ланцюг (усі GET/POST через CJ API, ліміт QPS=1/сек!)
+```
+CJ Search → Parse CJ (=Select top-3) → CJ Details → CJ Inventory → CJ Reviews → CJ Freight → Parse CJ Margin → 3 рядки
+```
+**Тротлінг обов'язковий:** CJ = **1 запит/секунду**. Три items одночасно → `Too Many Requests, QPS limit is 1 time/1second`. Рішення: `Loop Over Items` (Batch=1) + `Wait 1.2с` між викликами, АБО в кожній HTTP-ноді `Options → Batching = 1 item / 1200ms`.
+
+### Схема: 1 рядок = 1 постачальник (не колонки!)
+По кожній платформі — **3 товари = 3 окремі рядки**. `margin_id = MRG-{product_id}-{ПЛАТФОРМА}-{ранг}`. Колонки: `товар_ціна, доставка, собівартість, маржа, рейтинг, відгуки, останній_відгук, відгуки_звіт, склади, спосіб_доставки, строк_днів, listedNum, постачальник, лінк, артикул, прапорці`.
+
+### Вибір 3 товарів CJ (`Parse CJ` = Select)
+- **топ-3 релевантних за `listedNum`** (скільки продавців імпортували = проксі попиту/довіри). У CJ **пошуку немає рейтингу/відгуків/замовлень** — тому відбір по listedNum.
+- CJ САМ розширює запит: у відповіді `keyWord:"car starter"` vs `keyWordOld:"car jump starter"` (викидає «jump») → лізуть мотори/ключі/наліпки → **фільтр релевантності обов'язковий** (`head`-слово seed + виключення JUNK/MOTOR-патернів + вимога POWER-ознак).
+
+### Мапа полів CJ (перевірено)
+- **Search** `data.content[].productList[]`: `nameEn, sellPrice`(рядок «14.93 -- 18.24» → min), `listedNum, id, sku, warehouseInventoryNum`. **Немає рейтингу/відгуків.**
+- **Details** `data`: `variants[]{vid, variantSellPrice, variantNameEn, variantWeight}` (найдешевший варіант = собівартість; `vid` потрібен для Freight!), `productSku, categoryName, productProEn`(рядок `'["IS_ELECTRICITY"]'` — тест через `JSON.stringify`+regex, НЕ `.some`!). **`supplierName:null` — рейтингу тут теж нема.**
+- **Inventory** `data.inventories[]{countryCode, totalInventoryNum}` (склади; hasLocal якщо US/DE/GB…), `variantInventories[]`.
+- **Reviews** `data{total, list[]{score, comment, commentDate, countryCode}}` — часто `total:0` (більшість товарів без відгуків). Рейтинг = середнє `score`; сортування за `commentDate` desc → звіт останніх 3 + `останній_відгук`; прапорець `🕰 відгуки старі` якщо дата < 2025.
+- **Freight** `data[]{logisticPrice, taxesFee, clearanceOperationFee, logisticAging, logisticName}` — беремо найдешевшу опцію; доставка = `logisticPrice+taxes+clearance`. POST, body `{startCountryCode:CN, endCountryCode:US, products:[{quantity:1, vid: $('CJ - Product Details').item.json.data.variants[0].vid}]}`.
+
+### Результат (jump starter, усі 🔴)
+CJ #1 $33.22+$23.69=$56.91 (0.76x) · #2 $59.06+$27=$86.06 (0.50x, рейтинг 5/16 але відгуки 2022 RU) · #3 $21.75+$32.24=$53.99 (0.80x). Доставка $24–32 на важку батарею → CJ збитковий для цього товару. Підтверджує: **AliExpress $19.30 (2.23x) — єдиний робочий варіант**, jump starter маргінальний попри 788 днів реклами.
+
+### Уроки
+- CJ image-search є лише на сайті (ручний), в API нема → CJ тільки keyword + фільтр релевантності.
+- CJ QPS=1/сек — завжди тротлити (Loop+Wait / Batching).
+- Рейтинг/відгуки лише в Reviews-ендпоінті і рідкісні; довіра на відборі = `listedNum`.
+- Кожна CJ-нода затирає json → фінальний Parse читає всі по імені (`$('CJ - ...').all()`) + вирівнює за індексом.
