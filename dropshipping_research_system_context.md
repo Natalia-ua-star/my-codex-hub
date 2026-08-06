@@ -1324,3 +1324,68 @@ Trigger → 13_Verdicts Write → Seed Inbox → Prep Winners → SerpApi Shoppi
 - **Клікабельний лінк у Sheets** = `=HYPERLINK(...)` + USER_ENTERED; або чистий encoded-URL без пробілів.
 - **SerpApi/HTTP затирають json** → далі читати попередні дані по імені ноди (`$('Get Product Id')`), не `$json`.
 - **DataForSEO дешевший ~10-20×** за SerpApi, але task-based/складніший; при 1 товарі/прогін різниця копійчана → SerpApi для простоти, DataForSEO де нативно (Amazon).
+
+---
+
+## ОНОВЛЕННЯ 06.08.2026 — ГЕЙТ, СТАТУС-ЧЕРГА, МАРЖА ПО ФОТО
+
+### Новий воркфлоу `10_DPRS_Product Gate` (`M2-validation · fn-gate · status-active`)
+Фільтр-черга **МІЖ Машиною 1 і Машиною 2**. Розклад `0 8,14,20 * * *` (3×/день).
+```
+Schedule → 12_Seed_Inbox (Read) → Gate M2 (Code) → 12_Seed_Inbox (Update: status/gate_reason/gate_priority)
+```
+**Принцип:** черга живе в колонці `status` інбоксу — окрема таба НЕ потрібна.
+- `NEW → (Гейт) → QUEUED / WATCH / REJECTED_CATEGORY / DUPLICATE`
+- `QUEUED → (Машина 2) → VALIDATED → (Маржа) → MARGIN`
+- Додано колонки в інбокс: **`gate_reason`, `gate_priority`**.
+
+**Логіка Gate M2:**
+- `PROTECT = [QUEUED,VALIDATED,MARGIN,FINAL,SENT]` — «вже в роботі», гейт НЕ чіпає (SKIP). Решту перебирає (працює і як разовий бекфіл, і на розкладі).
+- REJECT: регульоване/небезпечне (`REGULATED`: car seat, baby monitor, eclipse glasses, salmon oil, insect repellent, crypto, laptop, smartphone…), габарит (`OVERSIZED`: dumbbell, kitchen sink, espresso machine, mattress, hose reel…), рейтинг<3.5, momentum SATURATED/COOLING, поганий сід.
+- WATCH: ціна<$12 (тонка маржа), momentum SPIKE, бренд у назві. **Стелі ціни НЕМА** (свідоме рішення — категорії ловлять дороге сміття без цінового обмеження).
+- `gate_priority`: TikTok +100, RISING +60/SPIKE +25/NEW +15, log(sold), rating; бренд −20.
+- Дедуп по `generic_seed`: виводить ВСІ рядки (273=273), програшним дублям → `status=DUPLICATE` (не випадають, не зависають). Downstream-інстанс (VALIDATED тощо) перемагає новий → новий стає DUPLICATE (не ре-чергується).
+
+**5 джерел БІЛЬШЕ НЕ пишуть status.** У кожній Sheets-write ноді джерел (TikTok/YouTube/IG/Trends Related/Trends) прибрано `status` з мапінгу → нові сіди лягають з ПОРОЖНІМ статусом (гейт заповнює), повторно знайдені — status не перезаписується (не скидає VALIDATED). Правило `<$20→WATCH` перенесено в гейт (`PRICE_THIN=12`).
+
+### Машина 2 (`02_DPRS_Semantic Core validation`) — черга + фото
+Реальний ланцюг (робочий):
+```
+Schedule → 12_Seed_Inbox(Read) → Pick Next 1 → Build Country Batches → Get live google search volume (DataForSEO)
+  → Parse Validation → Filter STRONG →
+      ├─ Get keyword suggestions (DataForSEO Labs) → Parse Semantic Core → 08_Semantic_Core
+      └─ Search for ads (facebookAdLibrary) → Parse Meta Ads →
+   Merge → Idea Verdict → 12_Seed_Inbox(status=VALIDATED) + 13_Verdicts (status=VERDICT, вердикт=ТЕСТ/…)
+```
+- **`Pick Next 1`** (Code): бере 1 товар `status=QUEUED`, сорт за `gate_priority` desc. Порожня черга → `return []` (Always Output Data=OFF).
+- **Перший вердикт** (`Idea Verdict`): комбо попиту (Google volume) + реклами (FB Ad Library 30+днів). Приклад jump starter: 🟢 PROVEN, 43 реклами 30+дн, найдовша 788 днів → **вердикт ТЕСТ**.
+- **Гілка ФОТО (паралельна від `Pick Next 1`):** `Need Amazon Image?` (Code: пропускає далі лише якщо фото `gstatic`/`serpapi`/порожнє — TikTok з чистим `ttcdn` стопиться) → **DataForSEO Merchant Amazon** (keyword=`generic_seed`) → `Set Amazon Image` (бере `items[0].image_url` = чистий `m.media-amazon`) → 12_Seed_Inbox Update `image_url`. TikTok через Amazon НЕ ганяємо (має своє фото).
+- **Фото по джерелах:** TikTok=своє (`ttcdn`), keyword(YouTube/IG/Trends)=з Amazon (`m.media-amazon`). Google Shopping `gstatic`-мініатюра для devcake НЕ годиться (проксі). DataForSEO Merchant дешевший за SerpApi Amazon → його й беремо (SerpApi запасний).
+
+### Маржа по фото (`03_DPRS_Prices & Margin`) — devcake Scraper by Image
+```
+Schedule → 12_Seed_Inbox(Read) → Pick for Margin → [AliExpress: devcake фото] ─┐
+                                                    [1688: Seed→CN keyword]    ├─ Merge → Final Verdict → 13_Verdicts + status=MARGIN
+                                                    [CJ: keyword]              ┘        + 06_Margin (рядок/платформа)
+```
+- **`Pick for Margin`** (Code): бере 1 рядок з **13_Verdicts** де вердикт `ТЕСТ/ПОГРАНИЧНО/🟢/🟡` І `маржа` порожня І є `image_url`. «Порожня маржа» = автоматично «по одному». Замінює стару `Filter Entry`.
+- **Стратегія сорсингу (перевірено на jump starter):**
+  - ✅ **AliExpress — ПО ФОТО** (devcake `provider=aliexpress`). Image-match точний. Дав $19.30 ⭐4.7 984зам → 2.23x 🟡.
+  - ✅ **1688 — кит. KEYWORD** (гілка `Seed→CN` OpenAI → devcake 1688 queries → переклад). Дав $11.48 → 3.74x 🟢 (АЛЕ гурт CN, доставка не врахована, потрібен агент).
+  - ⚠️ **CJdropshipping — KEYWORD** (image-API немає; keyword слабкий → обов'язковий фільтр релевантності).
+  - ❌ **Alibaba — ПРИБРАНО** з фото: image-match дав сміття (лампу для нігтів на jump starter).
+  - **1688/Alibaba по фото НЕ працюють** — image-match промахується (ваги/лампа), + китайські назви не валідуються англ. ключами.
+- **devcake output (ключові поля):** `provider`, `price_min`/`price_max` (НЕ `price`!), `currency_code`, `product_url` (лінк), `title`, `image_url`. Для 1688/alibaba додатково є `rating`, `sold_count`, `years_as_gold_supplier`, `factory_inspected`. AliExpress рейтинг/продажі = **null** (image-search їх не дає).
+- **`Parse Margin (Image)`:**
+  - Фільтр релевантності: назва містить ключове слово сіда (`jump`/`starter`, len≥4). Нема релевантних → `🟠 нема релевантних (перевір вручну)`, маржу НЕ рахуємо (щоб сміття не давало фейкових 🔴). 1688 (кит. назви) авто-релевантність не проходить → «перевір вручну».
+  - Надійність (де є дані): `рейтинг≥4.3 AND замовлень≥100` або gold/factory. AliExpress без рейтингу → floor-only.
+  - `floor = роздрібна/4` (відсіює аксесуари/1шт). Собівартість = найдешевший надійний ≥ floor. Топ-3 резерв. Валюта→USD (`FX`, 1688=CNY×0.14).
+  - Рядок на платформу: `margin_id = MRG-{product_id}-{ALI|1688|BABA}` (не перезаписують один одного).
+- **`Final Verdict`:** найкраща РЕЛЕВАНТНА маржа серед платформ (ігнорує 🟠/⚪). **`SHIP_BUFFER` для CN** (1688/alibaba +$4 до собівартості) — щоб гурт без доставки чесно не перебивав all-in AliExpress. Комбо: маржа≥3→🟢 ТЕСТ, 2-3→🟡, <2→🔴 СТОП-МАРЖА. Пише в `13_Verdicts` (match `verdict_id`) + `12_Seed_Inbox` status=MARGIN.
+
+### Уроки цього оновлення
+- **Черга = статус, не нова таба.** Гейт наповнює (QUEUED), Машина 2 бере по 1 (LIMIT 1, `маржа`/`status` як гейт «зроблено»).
+- **Гейт = єдиний власник статусу.** Джерела статус не пишуть (інакше скидають прогрес).
+- **Фото по фото працює лише на AliExpress** (+ TikTok має своє). 1688/Alibaba image-match ненадійний → keyword.
+- **1688 дешевший ~1.7×, але без доставки** — потрібен `SHIP_BUFFER` для чесного порівняння + агент/семпл.
+- **Фільтр релевантності обов'язковий** для keyword-джерел (CJ/1688) — назва мусить містити ключ товару.
