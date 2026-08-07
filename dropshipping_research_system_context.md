@@ -1422,3 +1422,56 @@ CJ #1 $33.22+$23.69=$56.91 (0.76x) · #2 $59.06+$27=$86.06 (0.50x, рейтин�
 - CJ QPS=1/сек — завжди тротлити (Loop+Wait / Batching).
 - Рейтинг/відгуки лише в Reviews-ендпоінті і рідкісні; довіра на відборі = `listedNum`.
 - Кожна CJ-нода затирає json → фінальний Parse читає всі по імені (`$('CJ - ...').all()`) + вирівнює за індексом.
+
+---
+
+## 🏁 ФІНАЛЬНИЙ РАПОРТ + ЗАМИКАННЯ СТАТУСУ (07.08.2026) — СИСТЕМА ЗАВЕРШЕНА
+
+### Сценарій `05_DPRS_Final Report` (`M3-shortlist · fn-report · status-active`)
+Збирає дані з УСІХ таб у єдиний Telegram HTML-звіт + рядок у `07_Report`. Варіант «C» = і Telegram, і аркуш.
+
+### Ланцюг
+```
+Pick Winners (status=FINAL) → [Read: 12_Seed_Inbox, 05_Competitors, 04_Suppliers] + Parse Competitors (свіжий Amazon)
+   → Build Final Verdict → Telegram → Mark SENT (13_Verdicts) → Mark SENT (12_Seed_Inbox)
+```
+
+### Вузол `Build Final Verdict` (усе ДИНАМІЧНЕ, нічого зашитого)
+Читає: `Pick Winners` (вердикт), `12_Seed_Inbox` (фото/джерело/відео/product_url), `Parse Competitors` (свіжий Amazon у-флоу, НЕ з таби — інакше race), `05_Competitors (Read)` (Google-магазини), `04_Suppliers` (лінки на товар для маржі).
+- **Хелпери:** `num, esc, b, aTag, hUrl, anyUrl`. `anyUrl` дістає URL з формули `=HYPERLINK(...)` АБО з plain-URL.
+- **Динамічні бренди:** `brandOf` = перше слово назви (uppercased); `brandFreq` рахує повтори; `isBrand`=freq≥2; `domBrand`=найчастіший. Жодних зашитих брендів.
+- **Відносні пороги:** «дешеві варіанти» = ціна<медіани І продажі≥медіани (самонастройка під будь-який товар). Висновок конкуренції: >50k відгуків→🔴 насичено, >10k→🟡, >0→🟢.
+- **Блоки HTML:** 📸 фото (невидиме посилання `​` + Disable Web Page Preview OFF → прев'ю зверху, обходить ліміт 1024 символи підпису) · 🎯 назва+вердикт · 📈 ПОПИТ · 🏪 КОНКУРЕНТИ (🥇 бестселер + 🏬 по маркетах з лінкованими цінами + 📌 динамічний висновок) · 💰 МАРЖА (назва платформи→search-лінк, ціна→лінк на товар через `anyUrl` з 04_Suppliers) · 🔗 ПОСИЛАННЯ (video/джерело/Meta Ad Library/Google Trends) · 🔎 ПОШУК ПО ПЛАТФОРМАХ (Ali/1688/CJ/Amazon по keyword) · ✅ ВЕРДИКТ.
+- **Вихід:** `звіт_html`, `report_id=RPT-{pid}`, `ніша`, `маржа`, `маржа_платформа`, `роздрібна`, `amazon_count`, `amazon_median`, `amazon_bestseller`, `дата`, `фінальний_вердикт`.
+
+### Аркуш `07_Report` (заголовок, tab-separated)
+```
+report_id	product_id	товар	ніша	фінальний_вердикт	маржа	маржа_платформа	роздрібна	amazon_count	amazon_median	amazon_bestseller	звіт_html	дата
+```
+
+### Telegram node
+Text=`{{ $json.звіт_html }}` · Parse Mode=`HTML` · Disable Web Page Preview=**OFF** (щоб фото-прев'ю рендерилось).
+
+### КРИТИЧНИЙ фікс парсингу Telegram HTML
+Помилка `Bad Request: can't parse entities: Unsupported start tag "$59.99"` = сирий `<` перед не-тегом. Причина була в рядку висновку `Дешеві варіанти <$${az_med}` (голий `<` перед `$`). Виправлено на `дешевше $`. **Плюс глобальний запобіжник** (для будь-якого товару назавжди):
+```javascript
+html = html.replace(/<(?!\/?(?:b|i|a)(?:\s[^>]*)?>)/g, '&lt;');
+```
+Екранує кожен `<`, що НЕ є нашим `<b>/<i>/<a>` — звіт більше ніколи не впаде на чужій назві з `<`.
+
+### Замикання статусу (SENT)
+Після Telegram — 2 Update-ноди (ставляться ПІСЛЯ відправки: якщо Telegram впав, статус лишається FINAL → наступний прогін повторить):
+- `Mark SENT — 13_Verdicts`: match `product_id`, set `status=SENT`, `report_id`, `sent_at={{ $now.toISO() }}`. Нові колонки: `report_id	sent_at`.
+- `Mark SENT — 12_Seed_Inbox`: match `inbox_id`, set `status=SENT`.
+
+### ПОВНИЙ ЖИТТЄВИЙ ЦИКЛ СТАТУСУ (система замкнена 🔒)
+```
+NEW → QUEUED → VALIDATED → MARGIN → FINAL → SENT
+```
+`SENT` у PROTECT-списку гейта + жодна сцена не бере цей статус як вхідний → товар більше не прокручується, API не палиться на повторах.
+
+### Уроки цього фіналу
+- **`=HYPERLINK` при читанні повертає ЛЕЙБЛ, не URL.** Тримати сирий URL окремою колонкою АБО реконструювати (Amazon з `asin`) АБО `anyUrl()` дістає з формули/plain.
+- **Amazon читати у-флоу (`Parse Competitors`), не з таби** — read може випередити свіжий write (race → Amazon=0).
+- **USER_ENTERED текст не має починатися з `= + - @`** (Sheets прийме за формулу → #ERROR).
+- **Telegram HTML: escape ВСЕ динамічне** через `esc()` + глобальний regex-запобіжник на `<`.
