@@ -1475,3 +1475,25 @@ NEW → QUEUED → VALIDATED → MARGIN → FINAL → SENT
 - **Amazon читати у-флоу (`Parse Competitors`), не з таби** — read може випередити свіжий write (race → Amazon=0).
 - **USER_ENTERED текст не має починатися з `= + - @`** (Sheets прийме за формулу → #ERROR).
 - **Telegram HTML: escape ВСЕ динамічне** через `esc()` + глобальний regex-запобіжник на `<`.
+
+---
+
+## ⚡ ПРОДУКТИВНІСТЬ GOOGLE SHEETS (07.08.2026) — Execute Once рятує квоту
+
+### Симптом
+`429 RESOURCE_EXHAUSTED` на Sheets read: `Quota exceeded ... Read requests per minute per user ... limit 60`. Читання «довго», падає на `12_Seed_Inbox`/`05_Competitors (Read)`.
+
+### Справжня причина (не фільтр!)
+Read-нода за замовчуванням **виконується один раз на КОЖЕН вхідний item**. Якщо на вхід приходить 49 items (напр. з `Parse Competitors`), нода читає табу **49 разів** → 49 read-запитів за секунди → миттєво >60/хв → 429. Плюс дропдаун Column у фільтрі не вантажиться (той самий 429) → фільтр порожній → віддає всю табу.
+
+### Фікс (головний)
+На **кожній** Read-ноді, куди приходить >1 item: **Settings → Execute Once = ON**. Тоді читання 1 раз замість N. Одне читання таби навіть на 2499 рядків = 1 запит (ОК). Саме Execute Once усуває і 429, і гальмування.
+
+### Додатково (на виріст таб)
+- **Фільтр по product_id** у Read-ноді (`Filters → Column=product_id, Value={{ $('Pick Winners').first().json.product_id }}`, `Options → Return All Matches`) — віддає лише рядки товару, а не всю табу. Спрацьовує тільки після Execute Once (бо дропдаун колонок вантажиться через API).
+- **Retry On Fail** на всіх Sheets-нодах (Max Tries 5, Wait 12000 ms) — страховка від разових піків.
+- **Архів SENT-рядків** в окрему табу — тримати активні таби малими.
+- gviz HTTP `SELECT WHERE` або перехід на БД (Supabase) — коли таб стане дуже багато.
+
+### Правило
+Будь-яка Sheets Read-нода з багатьма вхідними items → **Execute Once обов'язково**.
