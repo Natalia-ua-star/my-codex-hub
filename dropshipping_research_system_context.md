@@ -1428,7 +1428,7 @@ CJ #1 $33.22+$23.69=$56.91 (0.76x) · #2 $59.06+$27=$86.06 (0.50x, рейтин�
 ## 🏁 ФІНАЛЬНИЙ РАПОРТ + ЗАМИКАННЯ СТАТУСУ (07.08.2026) — СИСТЕМА ЗАВЕРШЕНА
 
 ### Сценарій `05_DPRS_Final Report` (`M3-shortlist · fn-report · status-active`)
-Збирає дані з УСІХ таб у єдиний Telegram HTML-звіт + рядок у `07_Report`. Варіант «C» = і Telegram, і аркуш.
+Збирає дані з УСІХ таб у єдиний Telegram HTML-звіт + рядок у `07_Report_Products`. Варіант «C» = і Telegram, і аркуш.
 
 ### Ланцюг
 ```
@@ -1444,7 +1444,7 @@ Pick Winners (status=FINAL) → [Read: 12_Seed_Inbox, 05_Competitors, 04_Supplie
 - **Блоки HTML:** 📸 фото (невидиме посилання `​` + Disable Web Page Preview OFF → прев'ю зверху, обходить ліміт 1024 символи підпису) · 🎯 назва+вердикт · 📈 ПОПИТ · 🏪 КОНКУРЕНТИ (🥇 бестселер + 🏬 по маркетах з лінкованими цінами + 📌 динамічний висновок) · 💰 МАРЖА (назва платформи→search-лінк, ціна→лінк на товар через `anyUrl` з 04_Suppliers) · 🔗 ПОСИЛАННЯ (video/джерело/Meta Ad Library/Google Trends) · 🔎 ПОШУК ПО ПЛАТФОРМАХ (Ali/1688/CJ/Amazon по keyword) · ✅ ВЕРДИКТ.
 - **Вихід:** `звіт_html`, `report_id=RPT-{pid}`, `ніша`, `маржа`, `маржа_платформа`, `роздрібна`, `amazon_count`, `amazon_median`, `amazon_bestseller`, `дата`, `фінальний_вердикт`.
 
-### Аркуш `07_Report` (заголовок, tab-separated)
+### Аркуш `07_Report_Products` (заголовок, tab-separated)
 ```
 report_id	product_id	товар	ніша	фінальний_вердикт	маржа	маржа_платформа	роздрібна	amazon_count	amazon_median	amazon_bestseller	звіт_html	дата
 ```
