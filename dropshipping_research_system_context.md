@@ -1528,3 +1528,66 @@ Fallback (нема cnKw): англ. ≥2 слова (щоб «body scrub cream»
 
 ### Спільна колонка `пошук_лінк` / `пошук_1688`
 Кожна margin-гілка кладе свій пошуковий лінк у колонку 04_Suppliers; звіт бере його для кнопки платформи. Ali/CJ — англ. keyword, 1688 — англ. (не китайський, через GBK).
+
+---
+
+## 🧭 АРХІТЕКТУРА СИГНАЛІВ SIG/PRD (08.08.2026) — фундаментальний апгрейд
+
+Система шукає **не «одного віннера»**, а збирає **незалежні докази попиту** з 5 джерел на той самий товар, зводячи їх в один канонічний продукт.
+
+### Дворівнева ідентифікація
+- **SIG-*** = один **доказ (сигнал)** з конкретного джерела. `inbox_id` у 12_Seed_Inbox = SIG.
+- **PRD-*** = **канонічний продукт**. Одному PRD належить багато SIG.
+- Приклад: TikTok `cordless pressure washer` (SIG-AAA) + Instagram `battery pressure washer` (SIG-BBB) + YouTube `portable power washer` (SIG-CCC) → **усі → PRD-001** (один реальний продукт, 3 докази).
+
+### ПРАВИЛО inbox_id (SIG) — КОРЕКЦІЯ
+```javascript
+inbox_id = "SIG-" + hash36(source + "|" + generic_seed)
+```
+- у межах ОДНОГО джерела: та сама ніша з різних відео → **один SIG** (дедуп всередині джерела);
+- МІЖ джерелами: та сама ніша з TikTok/YouTube/Trends → **різні SIG** (зберігаємо 3 докази);
+- **НЕ** `hash(seed)` (склеїло б джерела й знищило докази). Resolver зшиває SIG у PRD пізніше.
+
+### 5 ДЖЕРЕЛ-СИГНАЛІВ
+1. **TikTok** (`tiktok_shop`) — video_url + image_url (CDN) ОРИГІНАЛЬНІ (пріоритет над GS); перегляди/продажі/momentum з related-відео.
+2. **Instagram** — Reel URL + Reel image ОРИГІНАЛЬНІ (пріоритет); перегляди, caption, хештеги.
+3. **YouTube** — 26 US-запитів, YouTube API (views/views_per_day/engagement/tags), BREAKOUT/RISING/PROVEN; LLM витягує лише явно названі фізичні товари. (Незакрито: Prepare Batches → HTTP Request до OpenAI з повним промптом, 8 пакетів.)
+4. **Google Trends Related** (`google_trends_related`) — related-запити; свого відео/фото НЕМА → video_url порожній, фото/лінк з Google Shopping; momentum з trend-сигналу.
+5. **Google Trends Digest** (`google_trends_digest`) — trending-запити (ранг/traffic); фото/лінк з Google Shopping.
+
+**TikTok/IG:** оригінальні фото+відео мають пріоритет над Google Shopping.
+**Trends:** фото/лінк тільки з Google Shopping (свого медіа нема).
+Google Shopping для всіх додає: конкурентів, comp_min/median/max, comp_count, рейтинг — **не перезаписуючи** оригінальні TikTok/IG фото/відео.
+
+### Product Resolver (окремий flow, після YouTube)
+1. Читає весь Seed Inbox.
+2. Gate M2 — відсів сміття/ризиків/слабких (SATURATED/COOLING/EXCLUDE).
+3. Код знаходить точні + нормалізовані дублікати.
+4. LLM перевіряє лише неоднозначні збіги.
+5. Створює/знаходить канонічний **PRD-***.
+6. Зв'язує всі відповідні SIG з PRD.
+7. Створює одну картку в `02_Products`.
+
+### Таблиця Product_Signal_Map (PRD ↔ SIG)
+Поля: `product_id (PRD) · inbox_id (SIG) · source · generic_seed · match_type · match_confidence · linked_at`.
+Так сигнали не перезаписуються й не втрачаються.
+
+### Ролі product_id
+- Зараз SIG стоїть у `product_id` хештегів — **тимчасово**.
+- Остаточно: **SIG = ідентифікатор сигналу**, **PRD = єдиний product_id** для маржі/звіту.
+
+### Фінальний маршрут
+```
+TikTok+IG+YouTube+Trends Related+Trends Digest
+ → SIG-сигнали → Seed Inbox → Gate M2 → Product Resolver → PRD-картка (02_Products)
+ → Google Shopping + соц-статистика → семантика → реклама → постачальники → скоринг
+```
+У картці PRD збирається найкраще фото/відео + усі соц-сигнали, хештеги, конкуренти, семантика, реклама, постачальники — **один продукт з повною доказовою базою**, а не 3 розрізнені «товари».
+
+### Momentum (нагадування — актуальність тренду)
+🔥RISING (свіжі ≥20%) / ⚡SPIKE (1 свіже відео) / ⚠️COOLING (5-20%) / 💀SATURATED (0 свіжих) / 🆕NEW / ❔NO_DATA.
+Gate пропускає живі (RISING/SPIKE/NEW), відсікає старі хіти (SATURATED/COOLING). «Старі хіти не потрібні».
+
+### Filter1 дискавері (перед enrichment/записом)
+Пропускати: momentum `RISING|SPIKE|NEW` + niche валідна (не REJECTED_CATEGORY/REVIEW).
+Блокувати: SATURATED/COOLING (старі) + EXCLUDE-ніші/невпевнені. Економить SerpApi й тримає дані чистими.
