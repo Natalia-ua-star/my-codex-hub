@@ -26,8 +26,8 @@ n8n, APIs, Google Sheets, AI tools, Shopify, scraping tools.
 - `n8n-debug` — пошук причини помилки у workflow або Code node.
 - `prompt-writer` — створення та покращення промптів для AI-нод.
 - `human-text-translate` — природний текст українською та дослівний переклад EN -> UK.
+- `product-research` — збір даних про товари, нормалізація полів і запис у Google Sheets.
 
 ## Next steps
 - Оптимізувати інструкції для меншої витрати токенів.
-- Додати skill для product research та роботи з Google Sheets.
 - Додати короткі приклади input/output до наявних skills.
