@@ -1,0 +1,65 @@
+# Налаштування щоденного пошуку winner-товарів.
+# Редагуйте цей файл — код чіпати не треба.
+
+budget:
+  # Ліміт витрат AIsa на ОДИН запуск, у доларах. Агент зупиняється, коли
+  # досягає його, і пише в звіт, що зупинився. Реальна вартість одного
+  # прогону на 12 ключів ≈ $0.05.
+  max_usd_per_run: 0.30
+
+markets:
+  # location_code + language_code для Amazon. Перевірені й робочі.
+  # Нову Зеландію не додано свідомо: ринок 5 млн, статистики немає,
+  # і DataForSEO повертає нулі. Продавайте туди в межах кампаній на AU.
+  - name: US
+    location_code: 2840
+    language_code: en_US
+    se_domain: amazon.com
+  - name: UK
+    location_code: 2826
+    language_code: en_GB
+    se_domain: amazon.co.uk
+
+trends:
+  # Скільки ключів перевіряти трендом перед дорогим Amazon-запитом.
+  # Це дешевий фільтр: $0.0024 за 5 ключів проти $0.003 за один Amazon.
+  enabled: true
+  type: ecommerce
+  time_range: past_12_months
+  # Нижче цього середнього інтересу ключ до Amazon не йде.
+  min_avg_interest: 5
+
+amazon:
+  # depth 20 замість 100: ціна та сама, а даних у 5 разів менше.
+  depth: 20
+  # УВАГА: department: "Pet Supplies" ламає запит (502). Не додавайте.
+
+apify:
+  enabled: true
+  # Перевірте схему входу цього актора під своїм акаунтом — вона різна
+  # у різних акторів. Якщо не збігається, агент просто пропустить крок.
+  actor: clockworks/tiktok-scraper
+  results_per_keyword: 30
+  min_views_for_hit: 500000
+
+report:
+  # Скільки кандидатів показувати у звіті.
+  top_n: 15
+  # Мінімальний score, щоб потрапити в звіт узагалі.
+  min_score: 1.0
+
+# Ключі для пошуку. Додавайте свої — по одному на рядок.
+# Порада: тримайте 10-20 штук. Більше = дорожче, а сигнал не покращується.
+keywords:
+  - cat tunnel bed
+  - cat cave bed
+  - wireless cat water fountain
+  - cat backpack carrier
+  - dog car seat cover
+  - dog paw cleaner
+  - slow feeder dog bowl
+  - interactive cat toy
+  - pet grooming vacuum
+  - dog water bottle portable
+  - cat window perch
+  - dog cooling mat

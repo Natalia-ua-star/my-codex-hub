@@ -1,0 +1,69 @@
+name: Щоденний пошук winner-товарів
+
+on:
+  schedule:
+    # 06:00 UTC = 09:00 за Києвом. Cron у GitHub завжди в UTC.
+    - cron: "0 6 * * *"
+  workflow_dispatch:  # кнопка "Run workflow" для запуску вручну
+
+permissions:
+  contents: write   # щоб комітити звіти
+  issues: write     # щоб відкривати issue зі знахідками
+
+concurrency:
+  group: winner-hunt
+  cancel-in-progress: false
+
+jobs:
+  hunt:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Встановити залежності
+        run: pip install pyyaml pytest
+
+      - name: Перевірити скоринг
+        # Якщо формула зламана — краще не витрачати гроші на прогін.
+        run: python -m pytest tests/ -q
+
+      - name: Знайти winner-товари
+        env:
+          AISA_API_KEY: ${{ secrets.AISA_API_KEY }}
+          APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
+        run: python -m winner_hunt.run
+
+      - name: Зберегти звіт у репозиторій
+        run: |
+          git config user.name "winner-hunt"
+          git config user.email "noreply@github.com"
+          git add reports/
+          if git diff --staged --quiet; then
+            echo "Змін немає"
+          else
+            git commit -m "Звіт winner-товарів за $(date -u +%Y-%m-%d)"
+            git push
+          fi
+
+      - name: Відкрити issue зі знахідками
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          REPORT="reports/$(date -u +%Y-%m-%d).md"
+          [ -f "$REPORT" ] || { echo "Звіту немає"; exit 0; }
+          # Issue створюється лише якщо в таблиці є хоч один рядок —
+          # порожні щоденні листи швидко привчають їх ігнорувати.
+          if grep -q '^| 1 |' "$REPORT"; then
+            gh issue create \
+              --title "Winner-кандидати за $(date -u +%Y-%m-%d)" \
+              --body-file "$REPORT" \
+              --label "winner-hunt" || echo "Не вдалося створити issue"
+          else
+            echo "Кандидатів немає — issue не створюю"
+          fi
